@@ -10,6 +10,7 @@
 
 #include "lib/constantes.h"
 #include "lib/punto.h"
+#include "lib/formas.cpp"
 
 /* Idea para coordenadas esféricas y utilización del mouse para mover el mundo:
  * Alexandri Zavodni
@@ -25,6 +26,10 @@ float VELOCIDAD_ZOOM = 2.5;
 
 Punto camaraXYZ, camaraTPR;
 // coordenadas cartesianas y esfericas (theta-pi-R)
+
+bool estadosFlechas[4] = {false};
+// vector booleano que determina si se estan presionando las teclas
+// arriba, abajo, derecha e izquierda
 
 void actualizarOrientacion() {
     // Asegura que Phi este entre 0 y pi
@@ -49,7 +54,7 @@ void configurarEscena() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
     glEnable(GL_LIGHT0);
 
-    camaraTPR = Punto(2.78f, 1.99f, 100.0f);
+    camaraTPR = Punto(2.39f, 2.015f, 349.0f);
     actualizarOrientacion();
 }
 
@@ -96,50 +101,56 @@ void teclas(unsigned char tecla, int x, int y) {
         case 87:
             camaraTPR.y += 0.01;
             actualizarOrientacion();
-            //printf("W\n");
             break;
         // A, izquierda
         case 97:
         case 65:
             camaraTPR.x += 0.01;
             actualizarOrientacion();
-            //printf("A\n");
             break;
         // S, abajo
         case 115:
         case 83:
             camaraTPR.y -= 0.01;
             actualizarOrientacion();
-            //printf("S\n");
             break;
         // D, derecha
         case 100:
         case 68:
             camaraTPR.x -= 0.01;
             actualizarOrientacion();
-            //printf("D\n");
             break;
         // E, dolly in
         case 69:
         case 101:
             camaraTPR.z -= VELOCIDAD_ZOOM;
             actualizarOrientacion();
-            //printf("E\n");
             break;
         // Q, dolly out
         case 81:
         case 113:
             camaraTPR.z += VELOCIDAD_ZOOM;
             actualizarOrientacion();
-            //printf("Q\n");
             break;
     }
 }
 
+void teclasEspeciales(int tecla, int x, int y)
+{
+    if (tecla == GLUT_KEY_LEFT)
+        estadosFlechas[0] = true;
+
+    if (tecla == GLUT_KEY_RIGHT)
+        estadosFlechas[1] = true;
+
+    if (tecla == GLUT_KEY_UP)
+        estadosFlechas[2] = true;
+
+    if (tecla == GLUT_KEY_DOWN)
+        estadosFlechas[3] = true;
+}
+
 void malla(coordenada c) {
-    glPushAttrib(GL_ENABLE_BIT); 
-    glLineStipple(1, 0xAAAA);
-    glEnable(GL_LINE_STIPPLE);
     double delta;
     for (int i = 1; i < 20 ; i++) {
         delta = i * 5.0;
@@ -164,7 +175,6 @@ void malla(coordenada c) {
                 break;
         }
     }
-    glDisable(GL_LINE_STIPPLE);
 }
 
 void display(){
@@ -200,8 +210,14 @@ void display(){
     malla(coordenada_z);
     glEnd();
 
-    glFlush();
+    // Planeta
+    glColor3ub(0,238,0);
+    esfera(10.0, 30.0, 40.0, 6);
 
+    glColor3ub(255,69,0);
+    anillo(10.0, 30.0, 40.0, 1, 10, 60);
+
+    glFlush();
 }
 
 void cambioventana(int w, int h){
@@ -235,9 +251,11 @@ int main(int argc,char** argv) {
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
+
     glutReshapeFunc(cambioventana);
 
     glutKeyboardFunc(teclas);
+    glutSpecialFunc(teclasEspeciales);
     glutMouseFunc(mouse);
     glutMotionFunc(movimientoMouse);
 
