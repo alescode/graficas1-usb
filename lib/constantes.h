@@ -1,0 +1,2 @@
+#define RUEDA_ARRIBA 3
+#define RUEDA_ABAJO 4

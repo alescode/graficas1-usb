@@ -8,6 +8,9 @@
 #include <GL/glut.h>
 #endif
 
+#include "lib/constantes.h"
+#include "lib/punto.h"
+
 /* Idea para coordenadas esféricas y utilización del mouse para mover el mundo:
  * Alexandri Zavodni
  * http://www.nd.edu/~pbui/teaching/cse40166.f10/examples/ex_15/main.cpp
@@ -15,27 +18,25 @@
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
-#define WHEEL_UP 3
-#define WHEEL_DOWN 4
-
-GLint leftMouseButton, 
-        rightMouseButton,
-        midMouseButton;                     //status of the mouse buttons
-int mouseX = 0, mouseY = 0;                 //last known X and Y of the mouse
-
+GLint botonMouse; // boton izquierdo del mouse
+int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
 
 float VELOCIDAD_ZOOM = 2.5;
-
-typedef struct {
-    float x;
-    float y;
-    float z;
-} Punto;
 
 Punto camaraXYZ, camaraTPR;
 // coordenadas cartesianas y esfericas (theta-pi-R)
 
 void actualizarOrientacion() {
+    // Asegura que Phi este entre 0 y pi
+    if (camaraTPR.y <= 0)
+        camaraTPR.y = 0.001;
+    if (camaraTPR.y >= M_PI)
+        camaraTPR.y = M_PI-0.001;
+    // Asegura que el radio no sea muy pequeño
+    if (camaraTPR.z < 5.0) {
+        camaraTPR.z = 5.0;
+    }
+
     camaraXYZ.x = camaraTPR.z * sinf(camaraTPR.x) * sinf(camaraTPR.y);
     camaraXYZ.z = camaraTPR.z * -cosf(camaraTPR.x) * sinf(camaraTPR.y);
     camaraXYZ.y = camaraTPR.z * -cosf(camaraTPR.y);
@@ -48,79 +49,38 @@ void configurarEscena() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
     glEnable(GL_LIGHT0);
 
-    camaraTPR.x = 2.78f;
-    camaraTPR.y = 1.99f;
-    camaraTPR.z = 100.0f;
+    camaraTPR = Punto(2.78f, 1.99f, 100.0f);
     actualizarOrientacion();
-
-    //camaraXYZ.x = 30.0;
-    //camaraXYZ.y = 30.0;
-    //camaraXYZ.z = 100.0;
 }
 
-void mouseCallback(int button, int state, int thisX, int thisY)
+// Escucha el estado actual del mouse y actualiza las estructuras de datos
+// pertinentes
+void mouse(int boton, int estado, int x, int y)
 {
-    //update the left and right mouse button states, if applicable
-    if(button == GLUT_LEFT_BUTTON)
-        leftMouseButton = state;
-    else if(button == GLUT_RIGHT_BUTTON)
-        rightMouseButton = state;
-    else if(button == GLUT_MIDDLE_BUTTON)
-        midMouseButton = state;
+    if (boton == GLUT_LEFT_BUTTON)
+        botonMouse = estado;
 
-    if(button == WHEEL_UP)
-    {
+    if (boton == RUEDA_ARRIBA) {
         camaraTPR.z += 0.5;
         actualizarOrientacion();
     }
 
-    if(button == WHEEL_DOWN)
-    {
+    if (boton == RUEDA_ABAJO) {
         camaraTPR.z -= 0.5;
         actualizarOrientacion();
     }
 
-    //and update the last seen X and Y coordinates of the mouse
-    mouseX = thisX;
-    mouseY = thisY;
+    mouseX = x;
+    mouseY = y;
 }
 
-// mouseMotion() ///////////////////////////////////////////////////////////////
-//
-//  GLUT callback for mouse movement. We update camaraTPR.y, camaraTPR.x, and/or
-//      camaraTPR.z based on how much the user has moved the mouse in the
-//      X or Y directions (in screen space) and whether they have held down
-//      the left or right mouse buttons. If the user hasn't held down any
-//      buttons, the function just updates the last seen mouse X and Y coords.
-//
-////////////////////////////////////////////////////////////////////////////////
-void mouseMotion(int x, int y)
+void movimientoMouse(int x, int y)
 {
-    if(leftMouseButton == GLUT_DOWN)
-    {
-        camaraTPR.x += (x - mouseX)*0.005;
-        camaraTPR.y += (y - mouseY)*0.005;
+    if (botonMouse == GLUT_DOWN) {
+        camaraTPR.x += (x - mouseX) * 0.005;
+        camaraTPR.y += (y - mouseY) * 0.005;
 
-        // make sure that phi stays within the range (0, M_PI)
-        if(camaraTPR.y <= 0)
-            camaraTPR.y = 0+0.001;
-        if(camaraTPR.y >= M_PI)
-            camaraTPR.y = M_PI-0.001;
-        
-        
-        actualizarOrientacion();     //update camera (x,y,z) based on (radius,theta,phi)
-    } else if(rightMouseButton == GLUT_DOWN || midMouseButton == GLUT_DOWN) {
-        double totalChangeSq = (x - mouseX) + (y - mouseY);
-        
-        camaraTPR.z += totalChangeSq*0.01;
-        
-        //limit the camera radius to some reasonable values so the user can't get lost
-        if(camaraTPR.z < 1.0) 
-            camaraTPR.z = 1.0;
-        if(camaraTPR.z > 40.0) 
-            camaraTPR.z = 40.0;
-
-        actualizarOrientacion();     //update camera (x,y,z) based on (radius,theta,phi)
+        actualizarOrientacion();
     }
     mouseX = x;
     mouseY = y;
@@ -162,10 +122,8 @@ void teclas(unsigned char tecla, int x, int y) {
         // E, dolly in
         case 69:
         case 101:
-            if (camaraTPR.z > 5.0) {
-                camaraTPR.z -= VELOCIDAD_ZOOM;
-                actualizarOrientacion();
-            }
+            camaraTPR.z -= VELOCIDAD_ZOOM;
+            actualizarOrientacion();
             //printf("E\n");
             break;
         // Q, dolly out
@@ -179,6 +137,9 @@ void teclas(unsigned char tecla, int x, int y) {
 }
 
 void malla(coordenada c) {
+    glPushAttrib(GL_ENABLE_BIT); 
+    glLineStipple(1, 0xAAAA);
+    glEnable(GL_LINE_STIPPLE);
     double delta;
     for (int i = 1; i < 20 ; i++) {
         delta = i * 5.0;
@@ -203,6 +164,7 @@ void malla(coordenada c) {
                 break;
         }
     }
+    glDisable(GL_LINE_STIPPLE);
 }
 
 void display(){
@@ -263,7 +225,7 @@ void cambioventana(int w, int h){
 int main(int argc,char** argv) {
     glutInit(&argc,argv);
     glutInitWindowSize (800, 800); 
-    glutInitWindowPosition (10, 50);
+    glutInitWindowPosition(10, 50);
     glutCreateWindow ("Proyecto 1");
 
     glEnable(GL_DEPTH_TEST);
@@ -276,8 +238,8 @@ int main(int argc,char** argv) {
     glutReshapeFunc(cambioventana);
 
     glutKeyboardFunc(teclas);
-    glutMouseFunc(mouseCallback);
-    glutMotionFunc(mouseMotion);
+    glutMouseFunc(mouse);
+    glutMotionFunc(movimientoMouse);
 
     glutMainLoop();
 
