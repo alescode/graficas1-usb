@@ -10,6 +10,8 @@
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
+float VELOCIDAD_ZOOM = 2.5;
+
 float x_camara = 30.0;
 float y_camara = 30.0;
 float z_camara = 100.0;
@@ -51,12 +53,19 @@ void teclas(unsigned char tecla, int x, int y) {
         // E, dolly in
         case 69:
         case 101:
-            z_camara -= 1.0;
+            if (z_camara >= 10.0) {
+                x_camara -= VELOCIDAD_ZOOM * 0.3;
+                y_camara -= VELOCIDAD_ZOOM * 0.3;
+                z_camara -= VELOCIDAD_ZOOM * 1.0;
+            }
             printf("E\n");
             break;
         // Q, dolly out
         case 81:
         case 113:
+            x_camara += VELOCIDAD_ZOOM * 0.3;
+            y_camara += VELOCIDAD_ZOOM * 0.3;
+            z_camara += VELOCIDAD_ZOOM * 1.0;
             printf("Q\n");
             break;
     }
