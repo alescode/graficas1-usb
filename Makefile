@@ -11,7 +11,7 @@
 # Libraries are assumed to be in the default search paths
 # as are any required include files
 
-CC = gcc
+CC = g++
 CP = g++
 
 LDLIBS = -lglut -lGL -lGLU -lX11  -lm -L/usr/X11R6/lib
