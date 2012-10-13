@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #ifdef __APPLE__
@@ -16,6 +17,24 @@ void ConfiguracionEscena() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
     glEnable(GL_LIGHT0);
 
+}
+
+void teclas(unsigned char tecla, int x, int y) {
+    // ESC = Salir
+    if (tecla == 27)
+        exit(0);
+    // W
+    if (tecla == 119 || tecla == 87)
+        printf("W\n");
+    // A
+    if (tecla == 97 || tecla == 65)
+        printf("A\n");
+    // D
+    if (tecla == 100 || tecla == 68)
+        printf("D\n");
+    // S
+    if (tecla == 115 || tecla == 83)
+        printf("S\n");
 }
 
 void malla(coordenada c) {
@@ -110,7 +129,10 @@ int main(int argc,char** argv) {
     ConfiguracionEscena();
 
     glutDisplayFunc(display);
+    glutIdleFunc(display);
     glutReshapeFunc(cambioventana);
+
+    glutKeyboardFunc(teclas);
 
     glutMainLoop();
 
