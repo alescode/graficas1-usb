@@ -12,17 +12,36 @@ typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
 float VELOCIDAD_ZOOM = 2.5;
 
-float x_camara = 30.0;
-float y_camara = 30.0;
-float z_camara = 100.0;
+typedef struct {
+    float x;
+    float y;
+    float z;
+} Punto;
 
-void ConfiguracionEscena() { 
+Punto camaraXYZ, camaraTPR;
+// coordenadas cartesianas y esfericas (theta-pi-R)
+
+void actualizarOrientacion() {
+    camaraXYZ.x = camaraTPR.z * sinf(camaraTPR.x) * sinf(camaraTPR.y);
+    camaraXYZ.z = camaraTPR.z * -cosf(camaraTPR.x) * sinf(camaraTPR.y);
+    camaraXYZ.y = camaraTPR.z * -cosf(camaraTPR.y);
+}
+
+void configurarEscena() { 
     float position[] = {0,0,1,0};
     float diffuse[] = {1,1,1,1};
     glLightfv(GL_LIGHT0, GL_POSITION, position);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
     glEnable(GL_LIGHT0);
 
+    camaraTPR.x = 2.78f;
+    camaraTPR.y = 1.99f;
+    camaraTPR.z = 100.0f;
+    actualizarOrientacion();
+
+    //camaraXYZ.x = 30.0;
+    //camaraXYZ.y = 30.0;
+    //camaraXYZ.z = 100.0;
 }
 
 void teclas(unsigned char tecla, int x, int y) {
@@ -33,40 +52,46 @@ void teclas(unsigned char tecla, int x, int y) {
         // W, arriba
         case 119:
         case 87:
-            printf("W\n");
+            camaraTPR.y += 0.01;
+            actualizarOrientacion();
+            //printf("W\n");
             break;
         // A, izquierda
         case 97:
         case 65:
-            printf("A\n");
+            camaraTPR.x += 0.01;
+            actualizarOrientacion();
+            //printf("A\n");
             break;
         // S, abajo
         case 115:
         case 83:
-            printf("S\n");
+            camaraTPR.y -= 0.01;
+            actualizarOrientacion();
+            //printf("S\n");
             break;
         // D, derecha
         case 100:
         case 68:
-            printf("D\n");
+            camaraTPR.x -= 0.01;
+            actualizarOrientacion();
+            //printf("D\n");
             break;
         // E, dolly in
         case 69:
         case 101:
-            if (z_camara >= 10.0) {
-                x_camara -= VELOCIDAD_ZOOM * 0.3;
-                y_camara -= VELOCIDAD_ZOOM * 0.3;
-                z_camara -= VELOCIDAD_ZOOM * 1.0;
+            if (camaraTPR.z > 5.0) {
+                camaraTPR.z -= VELOCIDAD_ZOOM;
+                actualizarOrientacion();
             }
-            printf("E\n");
+            //printf("E\n");
             break;
         // Q, dolly out
         case 81:
         case 113:
-            x_camara += VELOCIDAD_ZOOM * 0.3;
-            y_camara += VELOCIDAD_ZOOM * 0.3;
-            z_camara += VELOCIDAD_ZOOM * 1.0;
-            printf("Q\n");
+            camaraTPR.z += VELOCIDAD_ZOOM;
+            actualizarOrientacion();
+            //printf("Q\n");
             break;
     }
 }
@@ -104,8 +129,9 @@ void display(){
 
     glClearColor(0.0f, 0.0f, 0.0f ,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gluLookAt(x_camara, y_camara, z_camara,
-              0.0, 0.0, 0.0,0.0,1.0,0.0);
+    gluLookAt(camaraXYZ.x, camaraXYZ.y, camaraXYZ.z,
+              0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
+              0.0, 1.0, 0.0); // view up
 
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
@@ -124,7 +150,7 @@ void display(){
     malla(coordenada_y);
 
     // EJE Z
-    glColor3ub(0,0,255);
+    glColor3ub(255,255,0);
     glVertex3f(0.0,0.0,0.0);
     glVertex3f(0.0,0.0,100.0);
     malla(coordenada_z);
@@ -156,12 +182,12 @@ int main(int argc,char** argv) {
     glutInit(&argc,argv);
     glutInitWindowSize (600, 600); 
     glutInitWindowPosition (10, 50);
-    glutCreateWindow ("Proyecto 1");    
+    glutCreateWindow ("Proyecto 1");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_LIGHTING);
-    ConfiguracionEscena();
+    configurarEscena();
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
