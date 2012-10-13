@@ -8,7 +8,21 @@
 #include <GL/glut.h>
 #endif
 
+/* Idea para coordenadas esféricas y utilización del mouse para mover el mundo:
+ * Alexandri Zavodni
+ * http://www.nd.edu/~pbui/teaching/cse40166.f10/examples/ex_15/main.cpp
+ */
+
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
+
+#define WHEEL_UP 3
+#define WHEEL_DOWN 4
+
+GLint leftMouseButton, 
+        rightMouseButton,
+        midMouseButton;                     //status of the mouse buttons
+int mouseX = 0, mouseY = 0;                 //last known X and Y of the mouse
+
 
 float VELOCIDAD_ZOOM = 2.5;
 
@@ -42,6 +56,74 @@ void configurarEscena() {
     //camaraXYZ.x = 30.0;
     //camaraXYZ.y = 30.0;
     //camaraXYZ.z = 100.0;
+}
+
+void mouseCallback(int button, int state, int thisX, int thisY)
+{
+    //update the left and right mouse button states, if applicable
+    if(button == GLUT_LEFT_BUTTON)
+        leftMouseButton = state;
+    else if(button == GLUT_RIGHT_BUTTON)
+        rightMouseButton = state;
+    else if(button == GLUT_MIDDLE_BUTTON)
+        midMouseButton = state;
+
+    if(button == WHEEL_UP)
+    {
+        camaraTPR.z += 0.5;
+        actualizarOrientacion();
+    }
+
+    if(button == WHEEL_DOWN)
+    {
+        camaraTPR.z -= 0.5;
+        actualizarOrientacion();
+    }
+
+    //and update the last seen X and Y coordinates of the mouse
+    mouseX = thisX;
+    mouseY = thisY;
+}
+
+// mouseMotion() ///////////////////////////////////////////////////////////////
+//
+//  GLUT callback for mouse movement. We update camaraTPR.y, camaraTPR.x, and/or
+//      camaraTPR.z based on how much the user has moved the mouse in the
+//      X or Y directions (in screen space) and whether they have held down
+//      the left or right mouse buttons. If the user hasn't held down any
+//      buttons, the function just updates the last seen mouse X and Y coords.
+//
+////////////////////////////////////////////////////////////////////////////////
+void mouseMotion(int x, int y)
+{
+    if(leftMouseButton == GLUT_DOWN)
+    {
+        camaraTPR.x += (x - mouseX)*0.005;
+        camaraTPR.y += (y - mouseY)*0.005;
+
+        // make sure that phi stays within the range (0, M_PI)
+        if(camaraTPR.y <= 0)
+            camaraTPR.y = 0+0.001;
+        if(camaraTPR.y >= M_PI)
+            camaraTPR.y = M_PI-0.001;
+        
+        
+        actualizarOrientacion();     //update camera (x,y,z) based on (radius,theta,phi)
+    } else if(rightMouseButton == GLUT_DOWN || midMouseButton == GLUT_DOWN) {
+        double totalChangeSq = (x - mouseX) + (y - mouseY);
+        
+        camaraTPR.z += totalChangeSq*0.01;
+        
+        //limit the camera radius to some reasonable values so the user can't get lost
+        if(camaraTPR.z < 1.0) 
+            camaraTPR.z = 1.0;
+        if(camaraTPR.z > 40.0) 
+            camaraTPR.z = 40.0;
+
+        actualizarOrientacion();     //update camera (x,y,z) based on (radius,theta,phi)
+    }
+    mouseX = x;
+    mouseY = y;
 }
 
 void teclas(unsigned char tecla, int x, int y) {
@@ -175,12 +257,12 @@ void cambioventana(int w, int h){
     aspectratio = (float) w / (float) h;
 
 
-    gluPerspective(35.0f, aspectratio, 1.0, 300.0);
+    gluPerspective(35.0f, aspectratio, 1.0, 2000.0);
 }
 
 int main(int argc,char** argv) {
     glutInit(&argc,argv);
-    glutInitWindowSize (600, 600); 
+    glutInitWindowSize (800, 800); 
     glutInitWindowPosition (10, 50);
     glutCreateWindow ("Proyecto 1");
 
@@ -194,6 +276,8 @@ int main(int argc,char** argv) {
     glutReshapeFunc(cambioventana);
 
     glutKeyboardFunc(teclas);
+    glutMouseFunc(mouseCallback);
+    glutMotionFunc(mouseMotion);
 
     glutMainLoop();
 
