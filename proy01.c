@@ -10,6 +10,10 @@
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
+float x_camara = 30.0;
+float y_camara = 30.0;
+float z_camara = 100.0;
+
 void ConfiguracionEscena() { 
     float position[] = {0,0,1,0};
     float diffuse[] = {1,1,1,1};
@@ -20,21 +24,42 @@ void ConfiguracionEscena() {
 }
 
 void teclas(unsigned char tecla, int x, int y) {
-    // ESC = Salir
-    if (tecla == 27)
-        exit(0);
-    // W
-    if (tecla == 119 || tecla == 87)
-        printf("W\n");
-    // A
-    if (tecla == 97 || tecla == 65)
-        printf("A\n");
-    // D
-    if (tecla == 100 || tecla == 68)
-        printf("D\n");
-    // S
-    if (tecla == 115 || tecla == 83)
-        printf("S\n");
+    switch (tecla) {
+        // ESC = Salir
+        case 27:
+            exit(0);
+        // W, arriba
+        case 119:
+        case 87:
+            printf("W\n");
+            break;
+        // A, izquierda
+        case 97:
+        case 65:
+            printf("A\n");
+            break;
+        // S, abajo
+        case 115:
+        case 83:
+            printf("S\n");
+            break;
+        // D, derecha
+        case 100:
+        case 68:
+            printf("D\n");
+            break;
+        // E, dolly in
+        case 69:
+        case 101:
+            z_camara -= 1.0;
+            printf("E\n");
+            break;
+        // Q, dolly out
+        case 81:
+        case 113:
+            printf("Q\n");
+            break;
+    }
 }
 
 void malla(coordenada c) {
@@ -70,7 +95,8 @@ void display(){
 
     glClearColor(0.0f, 0.0f, 0.0f ,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gluLookAt(30.0,30.0,100.0,0.0,0.0,0.0,0.0,1.0,0.0);
+    gluLookAt(x_camara, y_camara, z_camara,
+              0.0, 0.0, 0.0,0.0,1.0,0.0);
 
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
