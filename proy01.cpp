@@ -19,6 +19,8 @@
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
+typedef enum modelo {planeta, objeto1, objeto2};
+
 GLint botonMouse; // boton izquierdo del mouse
 int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
 
@@ -29,7 +31,17 @@ Punto camaraXYZ, camaraTPR;
 
 bool estadosFlechas[4] = {false};
 // vector booleano que determina si se estan presionando las teclas
-// arriba, abajo, derecha e izquierda
+// izquierda, derecha, arriba, abajo
+
+Punto centroPlaneta, centroObj1, centroObj2;
+
+modelo modeloActual;
+
+void actualizarObjeto() {
+    centroPlaneta.x += 1.0f;
+    centroPlaneta.y += 1.0f;
+    centroPlaneta.z += 1.0f;
+}
 
 void actualizarOrientacion() {
     // Asegura que Phi este entre 0 y pi
@@ -55,6 +67,7 @@ void configurarEscena() {
     glEnable(GL_LIGHT0);
 
     camaraTPR = Punto(2.39f, 2.015f, 349.0f);
+    centroPlaneta = Punto(10.0f, 30.0f, 40.0f);
     actualizarOrientacion();
 }
 
@@ -132,6 +145,15 @@ void teclas(unsigned char tecla, int x, int y) {
             camaraTPR.z += VELOCIDAD_ZOOM;
             actualizarOrientacion();
             break;
+        case 49:
+            modeloActual = planeta;
+            break;
+        case 50:
+            modeloActual = objeto1;
+            break;
+        case 51:
+            modeloActual = objeto2;
+            break;
     }
 }
 
@@ -150,6 +172,21 @@ void teclasEspeciales(int tecla, int x, int y)
         estadosFlechas[3] = true;
 }
 
+void teclasEspecialesSoltar(int tecla, int x, int y)
+{
+    if (tecla == GLUT_KEY_LEFT)
+        estadosFlechas[0] = false;
+
+    if (tecla == GLUT_KEY_RIGHT)
+        estadosFlechas[1] = false;
+
+    if (tecla == GLUT_KEY_UP)
+        estadosFlechas[2] = false;
+
+    if (tecla == GLUT_KEY_DOWN)
+        estadosFlechas[3] = false;
+}
+
 void malla(coordenada c) {
     double delta;
     for (int i = 1; i < 20 ; i++) {
@@ -158,23 +195,57 @@ void malla(coordenada c) {
             case coordenada_x:
                 glVertex3f(0.0, delta, 0.0);
                 glVertex3f(100.0, delta, 0.0);
-                glVertex3f(0.0, 0.0, delta);
-                glVertex3f(100.0, 0.0, delta);
-                break;
-            case coordenada_y:
                 glVertex3f(delta, 0.0, 0.0);
                 glVertex3f(delta, 100.0, 0.0);
+                break;
+            case coordenada_y:
+                glVertex3f(0.0, delta, 0.0);
+                glVertex3f(0.0, delta, 100.0);
                 glVertex3f(0.0, 0.0, delta);
                 glVertex3f(0.0, 100.0, delta);
                 break;
             case coordenada_z:
+                glVertex3f(0.0, 0.0, delta);
+                glVertex3f(100.0, 0.0, delta);
                 glVertex3f(delta, 0.0, 0.0);
                 glVertex3f(delta, 0.0, 100.0);
-                glVertex3f(0.0, delta, 0.0);
-                glVertex3f(0.0, delta, 100.0);
                 break;
         }
     }
+}
+
+void dibujarPlaneta() {
+    glPushMatrix();
+    glColor3ub(0,238,0);
+    esfera(centroPlaneta.x, centroPlaneta.y, centroPlaneta.z, 6);
+
+    glColor3ub(255,69,0);
+    anillo(centroPlaneta.x, centroPlaneta.y, centroPlaneta.z, 1, 10, 60);
+    glPopMatrix();
+}
+
+void revisarFlechas() {
+    Punto* aMover;
+    switch (modeloActual) {
+        case planeta:
+            aMover = &centroPlaneta;
+            break;
+        case objeto1:
+            aMover = &centroObj1;
+            break;
+        case objeto2:
+            aMover = &centroObj2;
+            break;
+    }
+
+    if (estadosFlechas[0])
+        aMover->x -= 1.0f;
+    if (estadosFlechas[1])
+        aMover->x += 1.0f;
+    if (estadosFlechas[2])
+        aMover->y += 1.0f;
+    if (estadosFlechas[3])
+        aMover->y -= 1.0f;
 }
 
 void display(){
@@ -192,30 +263,26 @@ void display(){
 
     // EJE X
     glBegin(GL_LINES);
-    glColor3ub(255,0,0);
+    glColor3ub(30,90,90);
     glVertex3f(0.0,0.0,0.0);
     glVertex3f(100.0,0.0,0.0);
     malla(coordenada_x);
 
     // EJE Y
-    glColor3ub(0,255,0);
+    glColor3ub(90,90,30);
     glVertex3f(0.0,0.0,0.0);
     glVertex3f(0.0,100.0,0.0);
     malla(coordenada_y);
 
     // EJE Z
-    glColor3ub(255,255,0);
+    glColor3ub(90,30,90);
     glVertex3f(0.0,0.0,0.0);
     glVertex3f(0.0,0.0,100.0);
     malla(coordenada_z);
     glEnd();
 
-    // Planeta
-    glColor3ub(0,238,0);
-    esfera(10.0, 30.0, 40.0, 6);
-
-    glColor3ub(255,69,0);
-    anillo(10.0, 30.0, 40.0, 1, 10, 60);
+    revisarFlechas();
+    dibujarPlaneta();
 
     glFlush();
 }
@@ -233,7 +300,6 @@ void cambioventana(int w, int h){
     glLoadIdentity();
 
     aspectratio = (float) w / (float) h;
-
 
     gluPerspective(35.0f, aspectratio, 1.0, 2000.0);
 }
@@ -256,6 +322,7 @@ int main(int argc,char** argv) {
 
     glutKeyboardFunc(teclas);
     glutSpecialFunc(teclasEspeciales);
+    glutSpecialUpFunc(teclasEspecialesSoltar);
     glutMouseFunc(mouse);
     glutMotionFunc(movimientoMouse);
 
