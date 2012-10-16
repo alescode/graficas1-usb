@@ -13,3 +13,6 @@
 
 # OpenGL
 *.dSYM
+
+proy01
+.DS_Store

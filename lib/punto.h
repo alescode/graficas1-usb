@@ -1,3 +1,6 @@
+#ifndef PUNTO_HH
+#define PUNTO_HH
+
 class Punto {
     public:
         float x, y, z;
@@ -10,3 +13,5 @@ class Punto {
             z = c;
         }
 };
+
+#endif

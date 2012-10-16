@@ -11,7 +11,7 @@
 #include "lib/constantes.h"
 #include "lib/punto.h"
 #include "lib/formas.cpp"
-
+#include "lib/glm.h"
 /* Idea para coordenadas esféricas y utilización del mouse para mover el mundo:
  * Alexandri Zavodni
  * http://www.nd.edu/~pbui/teaching/cse40166.f10/examples/ex_15/main.cpp
@@ -36,6 +36,7 @@ bool estadosFlechas[4] = {false};
 Punto centroPlaneta, centroObj1, centroObj2;
 
 modelo modeloActual;
+GLMmodel* pmodel = NULL;
 
 void actualizarObjeto() {
     centroPlaneta.x += 1.0f;
@@ -248,6 +249,20 @@ void revisarFlechas() {
         aMover->y -= 1.0f;
 }
 
+void drawmodel(void)
+{
+ 
+    if (!pmodel) {
+        pmodel = glmReadOBJ("data/al.obj");
+        if (!pmodel) exit(0);
+        glmUnitize(pmodel);
+        glmFacetNormals(pmodel);
+        glmVertexNormals(pmodel, 90.0);
+    }
+    
+    glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL);
+}
+
 void display(){
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -284,6 +299,13 @@ void display(){
     revisarFlechas();
     dibujarPlaneta();
 
+       glEnable(GL_LIGHTING);
+    glPushMatrix();
+    drawmodel();
+    glPopMatrix();
+        drawmodel();
+        glDisable(GL_LIGHTING);
+
     glFlush();
 }
 
@@ -303,6 +325,7 @@ void cambioventana(int w, int h){
 
     gluPerspective(35.0f, aspectratio, 1.0, 2000.0);
 }
+
 
 int main(int argc,char** argv) {
     glutInit(&argc,argv);

@@ -1,3 +1,5 @@
+#include "lib/formas.h"
+
 void esfera(float x, float y, float z, float radius) {
   glPushMatrix();
   glTranslatef(x,y,z);

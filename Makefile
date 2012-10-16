@@ -1,23 +1,23 @@
-# This sample Makefile allows you to make an OpenGL application
-#   whose source is exactly one .c or .cpp file under Linux.
-#   check the location of the X libraries on your implementation.
-#
-# To use this Makefile, you type:
-#
-#        make xxxx
-# where
-#       xxxx.c is the name of the file you wish to compile 
-# A binary named xxxx will be produced
-# Libraries are assumed to be in the default search paths
-# as are any required include files
+.PHONY: all clean
 
-CC = g++
-CP = g++
+# LDFLAGS = -lGL -lglut
 
-LDLIBS = -lglut -lGL -lGLU -lX11  -lm -L/usr/X11R6/lib
+# Mac OS X: OpenGL and GLUT are frameworks, override LDFLAGS above with these
+LDFLAGS = -framework OpenGL -framework GLUT
 
-.c:
-	$(CC)  -g $@.c $(LDLIBS) -o $@
+CPP = g++
+CPPOPTS = -Wall -ggdb -I.
 
-.cpp:
-	$(CP)  -g $@.cpp $(LDLIBS) -o $@
+all: proy01
+
+clean:
+	rm -f proy01 ./*.o
+
+proy01: proy01.o lib/glm.o
+	$(CPP) $(CPPOPTS) $^ $(LDFLAGS) -o $@
+
+%.o: %.cpp
+	$(CPP) -c $(CPPOPTS) $< -o $@
+
+proy01.o: proy01.cpp lib/glm.h lib/formas.h lib/constantes.h lib/punto.h
+lib/glm.o: lib/glm.cpp lib/glm.h
