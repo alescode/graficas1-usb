@@ -1,9 +1,6 @@
 .PHONY: all clean
 
-# LDFLAGS = -lGL -lglut
-
-# Mac OS X: OpenGL and GLUT are frameworks, override LDFLAGS above with these
-LDFLAGS = -framework OpenGL -framework GLUT
+LDFLAGS = -lglut -lGL -lGLU -lX11  -lm -L/usr/X11R6/lib
 
 CPP = g++
 CPPOPTS = -Wall -ggdb -I.
