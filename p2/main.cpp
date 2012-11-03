@@ -225,6 +225,7 @@ void display(){
 
     glDisable(GL_LIGHTING);
 
+    camaraXYZ.z -= 1;
     glFlush();
 }
 
