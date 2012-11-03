@@ -19,17 +19,24 @@ bool estadosFlechas[4] = {false};
 
 float light_position[] = {0,0,1,0};
 
-Punto camaraXYZ(0, 0, 100000);
-int profundidad = camaraXYZ.z;
+Punto camara(0, 0, 100000);
+Punto nave(0, 0, camara.z - 2);
+
+float velocidad = 0.5;
+
+int profundidad = camara.z;
 
 GLMmodel* pmodel = NULL;
+
+int frames;
+int seconds;
 
 using namespace std;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
     glTranslatef(x,y,z);
-    glutSolidSphere(radius, 100, 100);
+    glutSolidSphere(radius, 3, 3);
     glPopMatrix();
 }
 
@@ -53,7 +60,6 @@ void movimientoMouse(int x, int y)
 }
 
 void teclas(unsigned char tecla, int x, int y) {
-    cout << camaraXYZ.x << " " << camaraXYZ.y << " " << camaraXYZ.z << endl;
     switch (tecla) {
         // ESC = Salir
         case 27:
@@ -77,12 +83,12 @@ void teclas(unsigned char tecla, int x, int y) {
         // E, dolly in
         case 'e':
         case 'E':
-            camaraXYZ.z -= 5;
+            camara.z -= 5;
             break;
         // Q, dolly out
         case 'q':
         case 'Q':
-            camaraXYZ.z += 5;
+            camara.z += 5;
             break;
     }
 }
@@ -178,12 +184,17 @@ void dibujarCapo(float x, float y, float z) {
 }
 
 void display(){
+    frames += 1;
+    seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
+    if (seconds > 0)
+        cout << frames / seconds << endl;
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
     glClearColor(0.0f, 0.0f, 0.0f ,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gluLookAt(camaraXYZ.x, camaraXYZ.y, camaraXYZ.z,
+    gluLookAt(camara.x, camara.y, camara.z,
               0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
               0.0, 1.0, 0.0); // view up
 
@@ -195,22 +206,23 @@ void display(){
     glEnable(GL_LIGHTING);
 
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    //dibujarCapo(0, 5, 5);
 
+    camara.z -= velocidad;
+    if (!(((int) (10 * camara.z)) % 100))
+        profundidad -= 10;
+
+    glColor3ub(30,90,90);
     for (int i = 1; i < 15; i++) {
         esfera(-1.0f, 0.0f, (float) profundidad - i*10, 0.1);
         esfera(1.0f, 0.0f, (float) profundidad - i*10, 0.1);
     }
+
     glColor3ub(90,30,90);
-    esfera(0.0f, 0.0f, camaraXYZ.z - 2, 0.05);
+    esfera(nave.x, nave.y, nave.z, 0.05);
+    nave.z = camara.z - 2;
 
     glDisable(GL_LIGHTING);
 
-    camaraXYZ.z -= 1;
-    if (!(((int) camaraXYZ.z) % 10))
-        profundidad -= 10;
-
-    cout << camaraXYZ.z << endl;
     glFlush();
 }
 

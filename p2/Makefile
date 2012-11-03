@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-LDFLAGS = -lglut -lGL -lGLU -lX11 -lSDL -lm -L/usr/X11R6/lib
+LDFLAGS = -lglut -lGL -lGLU -lX11 -lboost_timer-mt -lm -L/usr/X11R6/lib
 
 CPP = g++
 CPPOPTS = -Wall -ggdb -I.
