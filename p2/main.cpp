@@ -153,14 +153,26 @@ void malla(coordenada c) {
 // Actualiza los posiciones de los objetos si las flechas direccionales son
 // presionadas
 void revisarFlechas() {
-    if (estadosFlechas[0])
-        return;
-    if (estadosFlechas[1])
-        return;
-    if (estadosFlechas[2])
-        return;
-    if (estadosFlechas[3])
-        return;
+    // izquierda
+    if (estadosFlechas[0]) {
+        if (nave.x > -0.8)
+            nave.x -= 0.01;
+    }
+    // derecha
+    if (estadosFlechas[1]) {
+        if (nave.x < 0.8)
+            nave.x += 0.01;
+    }
+    // arriba
+    if (estadosFlechas[2]) {
+        if (nave.y < 0.6)
+            nave.y += 0.01;
+    }
+    // abajo
+    if (estadosFlechas[3]) {
+        if (nave.y > -0.6)
+            nave.y -= 0.01;
+    }
 }
 
 void dibujarCapo(float x, float y, float z) {
@@ -186,8 +198,8 @@ void dibujarCapo(float x, float y, float z) {
 void display(){
     frames += 1;
     seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
-    if (seconds > 0)
-        cout << frames / seconds << endl;
+    //if (seconds > 0)
+        //cout << frames / seconds << endl;
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -211,13 +223,13 @@ void display(){
     if (!(((int) (10 * camara.z)) % 100))
         profundidad -= 10;
 
-    glColor3ub(30,90,90);
+    glColor3ub(30, 90, 90);
     for (int i = 1; i < 15; i++) {
         esfera(-1.0f, 0.0f, (float) profundidad - i*10, 0.1);
         esfera(1.0f, 0.0f, (float) profundidad - i*10, 0.1);
     }
 
-    glColor3ub(90,30,90);
+    glColor3ub(90, 30, 90);
     esfera(nave.x, nave.y, nave.z, 0.05);
     nave.z = camara.z - 2;
 
