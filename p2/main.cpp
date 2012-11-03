@@ -19,7 +19,9 @@ bool estadosFlechas[4] = {false};
 
 float light_position[] = {0,0,1,0};
 
-Punto camaraXYZ(0, 0, 1000);
+Punto camaraXYZ(0, 0, 100000);
+int profundidad = camaraXYZ.z;
+
 GLMmodel* pmodel = NULL;
 
 using namespace std;
@@ -188,29 +190,6 @@ void display(){
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 
-    // EJE X
-    glBegin(GL_LINES);
-    glColor3ub(30,90,90);
-    glVertex3f(10.0,10.0,130.0);
-    glVertex3f(10.0,10.0,0.0);
-    //malla(coordenada_x);
-    //
-    glColor3ub(90,90,30);
-    glVertex3f(-10.0,10.0,130.0);
-    glVertex3f(-10.0,10.0,0.0);
-
-    // EJE Y
-    //glVertex3f(0.0,0.0,0.0);
-    //glVertex3f(0.0,100.0,0.0);
-    //malla(coordenada_y);
-
-    // EJE Z
-    //glColor3ub(90,30,90);
-    //glVertex3f(0.0,0.0,0.0);
-    //glVertex3f(0.0,0.0,100.0);
-    //malla(coordenada_z);
-    glEnd();
-
     revisarFlechas();
 
     glEnable(GL_LIGHTING);
@@ -219,13 +198,19 @@ void display(){
     //dibujarCapo(0, 5, 5);
 
     for (int i = 1; i < 15; i++) {
-        esfera(-1.0f, 0.0f, (float) 1000-i*10, 0.1);
-        esfera(1.0f, 0.0f, (float) 1000-i*10, 0.1);
+        esfera(-1.0f, 0.0f, (float) profundidad - i*10, 0.1);
+        esfera(1.0f, 0.0f, (float) profundidad - i*10, 0.1);
     }
+    glColor3ub(90,30,90);
+    esfera(0.0f, 0.0f, camaraXYZ.z - 2, 0.05);
 
     glDisable(GL_LIGHTING);
 
     camaraXYZ.z -= 1;
+    if (!(((int) camaraXYZ.z) % 10))
+        profundidad -= 10;
+
+    cout << camaraXYZ.z << endl;
     glFlush();
 }
 
