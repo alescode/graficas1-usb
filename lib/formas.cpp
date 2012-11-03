@@ -1,4 +1,4 @@
-#include "lib/formas.h"
+#include "formas.h"
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();

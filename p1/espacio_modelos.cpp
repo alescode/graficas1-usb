@@ -8,10 +8,10 @@
 #include <GL/glut.h>
 #endif
 
-#include "lib/constantes.h"
-#include "lib/punto.h"
-#include "lib/formas.cpp"
-#include "lib/glm.h"
+#include "../lib/constantes.h"
+#include "../lib/punto.h"
+#include "../lib/formas.cpp"
+#include "../lib/glm.h"
 /* Idea para coordenadas esféricas y utilización del mouse para mover el mundo:
  * Alexandri Zavodni
  * http://www.nd.edu/~pbui/teaching/cse40166.f10/examples/ex_15/main.cpp
@@ -288,7 +288,7 @@ void dibujarCapo(float x, float y, float z) {
  
     glPushMatrix();
     if (!pmodel) {
-        char a[] = "data/al.obj";
+        char a[] = "../data/al.obj";
         pmodel = glmReadOBJ(a);
         glmUnitize(pmodel);
         glmFacetNormals(pmodel);
