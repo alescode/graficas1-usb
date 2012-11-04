@@ -46,6 +46,9 @@ void configurarEscena() {
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
     glEnable(GL_LIGHT0);
 
+    glLoadIdentity();
+    glEnable(GL_TEXTURE_2D);
+
     glEnable(GL_NORMALIZE);
 }
 
@@ -175,7 +178,7 @@ void revisarFlechas() {
     }
 }
 
-void dibujarCapo(float x, float y, float z) {
+void dibujarNave(float x, float y, float z, float scale) {
  
     glPushMatrix();
     if (!pmodel) {
@@ -187,7 +190,7 @@ void dibujarCapo(float x, float y, float z) {
     }
 
     glTranslatef(x, y, z);
-    glScalef(7.0f, 9.0f, 7.0f);
+    glScalef(scale, scale, scale);
     glRotatef(15.0f, 0.0f, 0.0f, 1.0f);
     glRotatef(20.0f, 1.0f, 0.0f, 0.0f);
     //glScalef(8.0f, 10.0f, 8.0f);
@@ -204,7 +207,7 @@ void display(){
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glClearColor(0.0f, 0.0f, 0.0f ,1.0f);
+    glClearColor(0.082, 0.106, 0.552,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gluLookAt(camara.x, camara.y, camara.z,
               0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
@@ -230,7 +233,10 @@ void display(){
     }
 
     glColor3ub(90, 30, 90);
-    esfera(nave.x, nave.y, nave.z, 0.05);
+    dibujarNave(nave.x, nave.y, nave.z, 0.05);
+    //esfera(nave.x, nave.y, nave.z, 0.05);
+
+    glColor3ub(255, 0, 0);
     nave.z = camara.z - 2;
 
     glDisable(GL_LIGHTING);
