@@ -24,7 +24,7 @@ bool estadosFlechas[4] = {false};
 float light_position[] = {0,0,1,0};
 
 Punto camara(0, 0, 100000);
-Punto nave(0, 0, camara.z - 2);
+Punto nave(0, 0, camara.z);
 
 float velocidad = VELOCIDAD_MAXIMA;
 
@@ -45,6 +45,15 @@ void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
     glTranslatef(x,y,z);
     glutSolidSphere(radius, 3, 3);
+    glPopMatrix();
+}
+
+void anillo(float x, float y, float z,
+        float innerRadius, float outerRadius,
+        float rotate) {
+    glPushMatrix();
+    glTranslatef(x,y,z);
+    glutSolidTorus(innerRadius, outerRadius, 10, 10);
     glPopMatrix();
 }
 
@@ -201,12 +210,28 @@ void dibujarNave(float x, float y, float z, float scale) {
     glPopMatrix();
 }
 
+/*
 void obtenerGlobulosRojos(float z) {
     globulosRojos->push_back(new Punto(1.0f, 0.0f, z));
     globulosRojos->push_back(new Punto(-1.0f, 0.0f, z));
+}*/
+
+void obtenerGlobulosRojos(float z) {
+    float p = rand()/float(INT_MAX);
+    if (p >= 0.9 && p < 0.95) {
+        float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
+        float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
+        globulosRojos->push_back(new Punto(r_x, r_y, z));
+    }
+    else if (p >= 0.95) {
+        float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
+        float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
+        globulosRojos->push_back(new Punto(r_x, r_y, z));
+        globulosRojos->push_back(new Punto(r_x, r_y, z - 20));
+    }
 }
 
-void display(){
+void display() {
     if (paused)
         return;
     frames += 1;
@@ -217,7 +242,7 @@ void display(){
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glClearColor(0.082, 0.106, 0.552,1.0f);
+    glClearColor(0.361, 0.027, 0.0,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gluLookAt(camara.x, camara.y, camara.z,
               0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
@@ -234,19 +259,19 @@ void display(){
 
     camara.z -= velocidad;
 
-    glColor3ub(30, 90, 90);
 
-    if (!(frames % 10)) {
-        obtenerGlobulosRojos(camara.z - 20);
+    if (!(frames % int(10 * VELOCIDAD_MAXIMA / velocidad))) {
+        obtenerGlobulosRojos(camara.z - 40);
     }
 
     vector<Punto*>::iterator it;
 
+    glColor3ub(227, 14, 16);
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
-        esfera((*it)->x, (*it)->y, (*it)->z, 0.1);
+        anillo((*it)->x, (*it)->y, (*it)->z, 0.1, 0.3, 1);
     }
 
-    glColor3ub(90, 30, 90);
+    glColor3ub(252, 238, 113);
     dibujarNave(nave.x, nave.y, nave.z, 0.2);
     //esfera(nave.x, nave.y, nave.z, 0.05);
 
@@ -298,6 +323,7 @@ int main(int argc,char** argv) {
 
     globulosRojos = new vector<Punto*>;
 
+    srand(time(NULL));
     glutMainLoop();
 
     return 0;
