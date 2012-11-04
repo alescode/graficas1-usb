@@ -182,7 +182,7 @@ void dibujarNave(float x, float y, float z, float scale) {
  
     glPushMatrix();
     if (!pmodel) {
-        char a[] = "../data/al.obj";
+        char a[] = "data/virus.obj";
         pmodel = glmReadOBJ(a);
         glmUnitize(pmodel);
         glmFacetNormals(pmodel);
@@ -233,7 +233,7 @@ void display(){
     }
 
     glColor3ub(90, 30, 90);
-    dibujarNave(nave.x, nave.y, nave.z, 0.05);
+    dibujarNave(nave.x, nave.y, nave.z, 0.2);
     //esfera(nave.x, nave.y, nave.z, 0.05);
 
     glColor3ub(255, 0, 0);
