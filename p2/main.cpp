@@ -33,6 +33,8 @@ int seconds;
 
 using namespace std;
 
+bool paused;
+
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
     glTranslatef(x,y,z);
@@ -67,23 +69,6 @@ void teclas(unsigned char tecla, int x, int y) {
         // ESC = Salir
         case 27:
             exit(0);
-        // W, arriba
-        case 'w':
-        case 'W':
-            break;
-        // A, izquierda
-        case 'a':
-        case 'A':
-            break;
-        // S, abajo
-        case 's':
-        case 'S':
-            break;
-        // D, derecha
-        case 'd':
-        case 'D':
-            break;
-        // E, dolly in
         case 'e':
         case 'E':
             camara.z -= 5;
@@ -92,6 +77,10 @@ void teclas(unsigned char tecla, int x, int y) {
         case 'q':
         case 'Q':
             camara.z += 5;
+            break;
+        case 'p':
+        case 'P':
+            paused = !paused;
             break;
     }
 }
@@ -199,6 +188,8 @@ void dibujarNave(float x, float y, float z, float scale) {
 }
 
 void display(){
+    if (paused)
+        return;
     frames += 1;
     seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
     //if (seconds > 0)
