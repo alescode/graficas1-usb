@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <vector>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -13,6 +14,9 @@
 #include "../lib/punto.h"
 #include "../lib/glm.h"
 
+#define VELOCIDAD_MAXIMA 0.125
+#define VELOCIDAD_MINIMA 0.015625
+
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
 bool estadosFlechas[4] = {false};
@@ -22,7 +26,7 @@ float light_position[] = {0,0,1,0};
 Punto camara(0, 0, 100000);
 Punto nave(0, 0, camara.z - 2);
 
-float velocidad = 0.5;
+float velocidad = VELOCIDAD_MAXIMA;
 
 int profundidad = camara.z;
 
@@ -34,6 +38,8 @@ int seconds;
 using namespace std;
 
 bool paused;
+
+vector<Punto*>* globulosRojos;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -81,6 +87,14 @@ void teclas(unsigned char tecla, int x, int y) {
         case 'p':
         case 'P':
             paused = !paused;
+            break;
+        case '+':
+            if (velocidad < VELOCIDAD_MAXIMA)
+                velocidad *= 2;
+            break;
+        case '-':
+            if (velocidad > VELOCIDAD_MINIMA)
+                velocidad /= 2;
             break;
     }
 }
@@ -187,6 +201,11 @@ void dibujarNave(float x, float y, float z, float scale) {
     glPopMatrix();
 }
 
+void obtenerGlobulosRojos(float z) {
+    globulosRojos->push_back(new Punto(1.0f, 0.0f, z));
+    globulosRojos->push_back(new Punto(-1.0f, 0.0f, z));
+}
+
 void display(){
     if (paused)
         return;
@@ -214,13 +233,17 @@ void display(){
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
     camara.z -= velocidad;
-    if (!(((int) (10 * camara.z)) % 100))
-        profundidad -= 10;
 
     glColor3ub(30, 90, 90);
-    for (int i = 1; i < 15; i++) {
-        esfera(-1.0f, 0.0f, (float) profundidad - i*10, 0.1);
-        esfera(1.0f, 0.0f, (float) profundidad - i*10, 0.1);
+
+    if (!(frames % 10)) {
+        obtenerGlobulosRojos(camara.z - 20);
+    }
+
+    vector<Punto*>::iterator it;
+
+    for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
+        esfera((*it)->x, (*it)->y, (*it)->z, 0.1);
     }
 
     glColor3ub(90, 30, 90);
@@ -272,6 +295,8 @@ int main(int argc,char** argv) {
     glutSpecialUpFunc(teclasEspecialesSoltar);
     glutMouseFunc(mouse);
     glutMotionFunc(movimientoMouse);
+
+    globulosRojos = new vector<Punto*>;
 
     glutMainLoop();
 
