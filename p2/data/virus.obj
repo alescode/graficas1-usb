@@ -17385,7 +17385,7 @@ vt  0.407234 0.268615 63.66626
 # 8733 texture vertices
 
 g GeoSphere01
-usemtl Ground_Water
+usemtl virus
 s 2
 f -8360/-8429 -4320/-4366 -6480/-6526
 f -6480/-6526 -4317/-4363 -8360/-8429

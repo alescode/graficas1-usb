@@ -39,6 +39,9 @@ using namespace std;
 
 bool paused;
 
+GLint botonMouse; // boton izquierdo del mouse
+int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
+
 vector<Punto*>* globulosRojos;
 
 void esfera(float x, float y, float z, float radius) {
@@ -73,6 +76,8 @@ void configurarEscena() {
 // pertinentes
 void mouse(int boton, int estado, int x, int y)
 {
+    if (boton == GLUT_LEFT_BUTTON)
+        cout << "au" << endl;
 }
 
 void movimientoMouse(int x, int y)
@@ -237,7 +242,7 @@ void display() {
     frames += 1;
     seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
     //if (seconds > 0)
-        //cout << frames / seconds << endl;
+    //    cout << frames / seconds << endl;
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -252,6 +257,11 @@ void display() {
     glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 
     revisarFlechas();
+
+    glBegin(GL_LINES);
+    glVertex3f(nave.x, nave.y, camara.z);
+    glVertex3f(nave.x, nave.y, camara.z - 20);
+    glEnd();
 
     glEnable(GL_LIGHTING);
 
