@@ -43,6 +43,8 @@ GLint botonMouse; // boton izquierdo del mouse
 int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
 
 vector<Punto*>* globulosRojos;
+vector<Punto*>* globulosBlancos;
+vector<Punto*>* rayos;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -76,8 +78,9 @@ void configurarEscena() {
 // pertinentes
 void mouse(int boton, int estado, int x, int y)
 {
-    if (boton == GLUT_LEFT_BUTTON)
-        cout << "au" << endl;
+    if (boton == GLUT_LEFT_BUTTON) {
+        rayos->push_back(new Punto(nave.x, nave.y, nave.z));
+    }
 }
 
 void movimientoMouse(int x, int y)
@@ -215,12 +218,6 @@ void dibujarNave(float x, float y, float z, float scale) {
     glPopMatrix();
 }
 
-/*
-void obtenerGlobulosRojos(float z) {
-    globulosRojos->push_back(new Punto(1.0f, 0.0f, z));
-    globulosRojos->push_back(new Punto(-1.0f, 0.0f, z));
-}*/
-
 void obtenerGlobulosRojos(float z) {
     float p = rand()/float(INT_MAX);
     if (p >= 0.9 && p < 0.95) {
@@ -233,6 +230,15 @@ void obtenerGlobulosRojos(float z) {
         float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
         globulosRojos->push_back(new Punto(r_x, r_y, z));
         globulosRojos->push_back(new Punto(r_x, r_y, z - 20));
+    }
+}
+
+void obtenerGlobulosBlancos(float z) {
+    float p = rand()/float(INT_MAX);
+    if (p >= 0.95) {
+        float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
+        float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
+        globulosBlancos->push_back(new Punto(r_x, r_y, z));
     }
 }
 
@@ -258,20 +264,15 @@ void display() {
 
     revisarFlechas();
 
-    glBegin(GL_LINES);
-    glVertex3f(nave.x, nave.y, camara.z);
-    glVertex3f(nave.x, nave.y, camara.z - 20);
-    glEnd();
-
     glEnable(GL_LIGHTING);
 
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
     camara.z -= velocidad;
 
-
     if (!(frames % int(10 * VELOCIDAD_MAXIMA / velocidad))) {
         obtenerGlobulosRojos(camara.z - 40);
+        obtenerGlobulosBlancos(camara.z - 60);
     }
 
     vector<Punto*>::iterator it;
@@ -279,6 +280,25 @@ void display() {
     glColor3ub(227, 14, 16);
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
         anillo((*it)->x, (*it)->y, (*it)->z, 0.1, 0.3, 1);
+    }
+
+    glColor3ub(255, 255, 255);
+    for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
+        esfera((*it)->x, (*it)->y, (*it)->z, 0.2);
+    }
+
+    // pendiente de los rayos que nunca se dejan de dibujar
+    for (it = rayos->begin(); it < rayos->end(); ++it) {
+        if ((*it)->z >= camara.z - 40) {
+            glColor3ub(252, 238, 113);
+            glBegin(GL_LINES);
+            glVertex3f((*it)->x, (*it)->y, (*it)->z);
+            glVertex3f((*it)->x, (*it)->y, (*it)->z - 2);
+            (*it)->z -= velocidad * 2;
+            glEnd();
+            glLineWidth(5);
+            glColor3ub(252, 238, 113);
+        }
     }
 
     glColor3ub(252, 238, 113);
@@ -332,6 +352,8 @@ int main(int argc,char** argv) {
     glutMotionFunc(movimientoMouse);
 
     globulosRojos = new vector<Punto*>;
+    globulosBlancos = new vector<Punto*>;
+    rayos = new vector<Punto*>;
 
     srand(time(NULL));
     glutMainLoop();
