@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "lib/glm.h"
+#include "glm.h"
 
 
 #define T(x) (model->triangles[(x)])
@@ -442,7 +442,8 @@ glmFirstPass(GLMmodel* model, FILE* file)
     char buf[128];
     
     /* make a default group */
-    group = glmAddGroup(model, "default");
+    char a[] = "default";
+    group = glmAddGroup(model, a);
     
     numvertices = numnormals = numtexcoords = numtriangles = 0;
     while(fscanf(file, "%s", buf) != EOF) {
