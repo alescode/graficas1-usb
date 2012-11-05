@@ -16,5 +16,5 @@ main: main.o ../lib/glm.o
 %.o: %.cpp
 	$(CPP) -c $(CPPOPTS) $< -o $@
 
-main.o: main.cpp ../lib/glm.h ../lib/formas.h ../lib/constantes.h ../lib/punto.h
+main.o: main.cpp ../lib/glm.h ../lib/formas.h ../lib/constantes.h ../lib/punto.h ../lib/rayo.h
 ../lib/glm.o: ../lib/glm.cpp ../lib/glm.h

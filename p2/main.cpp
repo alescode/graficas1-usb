@@ -12,6 +12,7 @@
 
 #include "../lib/constantes.h"
 #include "../lib/punto.h"
+#include "../lib/rayo.h"
 #include "../lib/glm.h"
 
 #define VELOCIDAD_MAXIMA 0.125
@@ -35,16 +36,17 @@ GLMmodel* pmodel = NULL;
 int frames;
 int seconds;
 
-using namespace std;
-
 bool paused;
 
 GLint botonMouse; // boton izquierdo del mouse
 int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
 
+using namespace std;
+
 vector<Punto*>* globulosRojos;
 vector<Punto*>* globulosBlancos;
-vector<Punto*>* rayos;
+
+vector<Rayo*>* rayos;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -79,7 +81,7 @@ void configurarEscena() {
 void mouse(int boton, int estado, int x, int y)
 {
     if (boton == GLUT_LEFT_BUTTON) {
-        rayos->push_back(new Punto(nave.x, nave.y, nave.z));
+        rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
     }
 }
 
@@ -87,11 +89,51 @@ void movimientoMouse(int x, int y)
 {
 }
 
+void teclasSoltar(unsigned char tecla, int x, int y)
+{
+    switch (tecla) {
+        case 'w':
+        case 'W':
+            estadosFlechas[2] = false;
+            break;
+        case 's':
+        case 'S':
+            estadosFlechas[3] = false;
+            break;
+        case 'a':
+        case 'A':
+            estadosFlechas[0] = false;
+            break;
+        case 'd':
+        case 'D':
+            estadosFlechas[1] = false;
+            break;
+    }
+}
+
+
 void teclas(unsigned char tecla, int x, int y) {
     switch (tecla) {
         // ESC = Salir
         case 27:
             exit(0);
+        case 'w':
+        case 'W':
+            estadosFlechas[2] = true;
+            break;
+        case 's':
+        case 'S':
+            estadosFlechas[3] = true;
+            break;
+        case 'a':
+        case 'A':
+            estadosFlechas[0] = true;
+            break;
+        case 'd':
+        case 'D':
+            estadosFlechas[1] = true;
+            break;
+        /*
         case 'e':
         case 'E':
             camara.z -= 5;
@@ -101,6 +143,7 @@ void teclas(unsigned char tecla, int x, int y) {
         case 'Q':
             camara.z += 5;
             break;
+            */
         case 'p':
         case 'P':
             paused = !paused;
@@ -113,63 +156,45 @@ void teclas(unsigned char tecla, int x, int y) {
             if (velocidad > VELOCIDAD_MINIMA)
                 velocidad /= 2;
             break;
+        case ' ':
+            rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+            break;
     }
 }
 
 void teclasEspeciales(int tecla, int x, int y)
 {
-    if (tecla == GLUT_KEY_LEFT)
-        estadosFlechas[0] = true;
-
-    if (tecla == GLUT_KEY_RIGHT)
-        estadosFlechas[1] = true;
-
-    if (tecla == GLUT_KEY_UP)
-        estadosFlechas[2] = true;
-
-    if (tecla == GLUT_KEY_DOWN)
-        estadosFlechas[3] = true;
+    switch (tecla) {
+        case GLUT_KEY_LEFT:
+                estadosFlechas[0] = true;
+                break;
+        case GLUT_KEY_RIGHT:
+                estadosFlechas[1] = true;
+                break;
+        case GLUT_KEY_UP:
+                estadosFlechas[2] = true;
+                break;
+        case GLUT_KEY_DOWN:
+                estadosFlechas[3] = true;
+                break;
+    }
 }
 
 void teclasEspecialesSoltar(int tecla, int x, int y)
 {
-    if (tecla == GLUT_KEY_LEFT)
-        estadosFlechas[0] = false;
-
-    if (tecla == GLUT_KEY_RIGHT)
-        estadosFlechas[1] = false;
-
-    if (tecla == GLUT_KEY_UP)
-        estadosFlechas[2] = false;
-
-    if (tecla == GLUT_KEY_DOWN)
-        estadosFlechas[3] = false;
-}
-
-void malla(coordenada c) {
-    double delta;
-    for (int i = 1; i < 20 ; i++) {
-        delta = i * 5.0;
-        switch (c) {
-            case coordenada_x:
-                glVertex3f(0.0, delta, 0.0);
-                glVertex3f(100.0, delta, 0.0);
-                glVertex3f(delta, 0.0, 0.0);
-                glVertex3f(delta, 100.0, 0.0);
-                break;
-            case coordenada_y:
-                glVertex3f(0.0, delta, 0.0);
-                glVertex3f(0.0, delta, 100.0);
-                glVertex3f(0.0, 0.0, delta);
-                glVertex3f(0.0, 100.0, delta);
-                break;
-            case coordenada_z:
-                glVertex3f(0.0, 0.0, delta);
-                glVertex3f(100.0, 0.0, delta);
-                glVertex3f(delta, 0.0, 0.0);
-                glVertex3f(delta, 0.0, 100.0);
-                break;
-        }
+    switch (tecla) {
+        case GLUT_KEY_LEFT:
+            estadosFlechas[0] = false;
+            break;
+        case GLUT_KEY_RIGHT:
+            estadosFlechas[1] = false;
+            break;
+        case GLUT_KEY_UP:
+            estadosFlechas[2] = false;
+            break;
+        case GLUT_KEY_DOWN:
+            estadosFlechas[3] = false;
+            break;
     }
 }
 
@@ -218,24 +243,22 @@ void dibujarNave(float x, float y, float z, float scale) {
     glPopMatrix();
 }
 
-void obtenerGlobulosRojos(float z) {
-    float p = rand()/float(INT_MAX);
-    if (p >= 0.9 && p < 0.95) {
+void obtenerGlobulosRojos(float z, float p) {
+    if (p >= 0.95) {
         float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
         float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
         globulosRojos->push_back(new Punto(r_x, r_y, z));
-    }
-    else if (p >= 0.95) {
-        float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
-        float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
-        globulosRojos->push_back(new Punto(r_x, r_y, z));
-        globulosRojos->push_back(new Punto(r_x, r_y, z - 20));
+
+        if (p >= 0.97) {
+            globulosRojos->push_back(new Punto(r_x, r_y, z - 10));
+            globulosRojos->push_back(new Punto(r_x, r_y, z - 15));
+            globulosRojos->push_back(new Punto(r_x, r_y, z - 20));
+        }
     }
 }
 
-void obtenerGlobulosBlancos(float z) {
-    float p = rand()/float(INT_MAX);
-    if (p >= 0.95) {
+void obtenerGlobulosBlancos(float z, float p) {
+    if (p >= 0.9) {
         float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
         float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
         globulosBlancos->push_back(new Punto(r_x, r_y, z));
@@ -264,19 +287,18 @@ void display() {
 
     revisarFlechas();
 
-    glEnable(GL_LIGHTING);
-
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
     camara.z -= velocidad;
 
     if (!(frames % int(10 * VELOCIDAD_MAXIMA / velocidad))) {
-        obtenerGlobulosRojos(camara.z - 40);
-        obtenerGlobulosBlancos(camara.z - 60);
+        float pRojos = rand()/float(INT_MAX);
+        float pBlancos = rand()/float(INT_MAX);
+        // Adaptar al jugador!
+
+        obtenerGlobulosRojos(camara.z - 30, pRojos);
+        obtenerGlobulosBlancos(camara.z - 30, pBlancos);
     }
 
     vector<Punto*>::iterator it;
-
     glColor3ub(227, 14, 16);
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
         anillo((*it)->x, (*it)->y, (*it)->z, 0.1, 0.3, 1);
@@ -287,14 +309,15 @@ void display() {
         esfera((*it)->x, (*it)->y, (*it)->z, 0.2);
     }
 
+    vector<Rayo*>::iterator it2;
     // pendiente de los rayos que nunca se dejan de dibujar
-    for (it = rayos->begin(); it < rayos->end(); ++it) {
-        if ((*it)->z >= camara.z - 40) {
+    for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
+        if ((*it2)->z_inicial <= camara.z + 20) {
             glColor3ub(252, 238, 113);
             glBegin(GL_LINES);
-            glVertex3f((*it)->x, (*it)->y, (*it)->z);
-            glVertex3f((*it)->x, (*it)->y, (*it)->z - 2);
-            (*it)->z -= velocidad * 2;
+            glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z);
+            glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z - 2);
+            (*it2)->pos.z -= velocidad * 2;
             glEnd();
             glLineWidth(5);
             glColor3ub(252, 238, 113);
@@ -307,8 +330,6 @@ void display() {
 
     glColor3ub(255, 0, 0);
     nave.z = camara.z - 2;
-
-    glDisable(GL_LIGHTING);
 
     glFlush();
 }
@@ -346,17 +367,20 @@ int main(int argc,char** argv) {
     glutReshapeFunc(cambioventana);
 
     glutKeyboardFunc(teclas);
+    glutKeyboardUpFunc(teclasSoltar);
     glutSpecialFunc(teclasEspeciales);
     glutSpecialUpFunc(teclasEspecialesSoltar);
+
     glutMouseFunc(mouse);
     glutMotionFunc(movimientoMouse);
 
     globulosRojos = new vector<Punto*>;
     globulosBlancos = new vector<Punto*>;
-    rayos = new vector<Punto*>;
+    rayos = new vector<Rayo*>;
 
     srand(time(NULL));
     glutMainLoop();
 
     return 0;
 }
+
