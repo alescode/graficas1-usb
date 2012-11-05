@@ -22,8 +22,6 @@ typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 
 bool estadosFlechas[4] = {false};
 
-float light_position[] = {0,0,1,0};
-
 Punto camara(0, 0, 100000);
 Punto nave(0, 0, camara.z);
 
@@ -31,7 +29,8 @@ float velocidad = VELOCIDAD_MAXIMA;
 
 int profundidad = camara.z;
 
-GLMmodel* pmodel = NULL;
+GLMmodel* virus = NULL;
+GLMmodel* globulo_blanco = NULL;
 
 int frames;
 int seconds;
@@ -48,6 +47,9 @@ vector<Punto*>* globulosBlancos;
 
 vector<Rayo*>* rayos;
 
+char string_globulo_blanco[] = "data/ghost.obj";
+char string_virus[] = "data/virus.obj";
+
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
     glTranslatef(x,y,z);
@@ -60,20 +62,31 @@ void anillo(float x, float y, float z,
         float rotate) {
     glPushMatrix();
     glTranslatef(x,y,z);
-    glutSolidTorus(innerRadius, outerRadius, 10, 10);
+    glutSolidTorus(innerRadius, outerRadius, 12, 12);
     glPopMatrix();
 }
 
 void configurarEscena() { 
-    float diffuse[] = {1,1,1,1};
+    glLoadIdentity();
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_NORMALIZE);
+    //glShadeModel(GL_FLAT);
+
+    // Luz ambiental
+    float light_position[] = {0,1,0,0};
+
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+
+    glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
-    glLoadIdentity();
-    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_COLOR_MATERIAL);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
-    glEnable(GL_NORMALIZE);
+    glLineWidth(3);
 }
 
 // Escucha el estado actual del mouse y actualiza las estructuras de datos
@@ -149,12 +162,19 @@ void teclas(unsigned char tecla, int x, int y) {
             paused = !paused;
             break;
         case '+':
-            if (velocidad < VELOCIDAD_MAXIMA)
+            if (paused) {
+                paused = false;
+            }
+            else if (velocidad < VELOCIDAD_MAXIMA)
                 velocidad *= 2;
             break;
         case '-':
-            if (velocidad > VELOCIDAD_MINIMA)
+            if (velocidad > VELOCIDAD_MINIMA) {
                 velocidad /= 2;
+            }
+            else {
+                paused = true;
+            }
             break;
         case ' ':
             rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
@@ -223,23 +243,24 @@ void revisarFlechas() {
     }
 }
 
-void dibujarNave(float x, float y, float z, float scale) {
- 
+void cargarModelos() {
+    virus = glmReadOBJ(string_virus);
+    glmUnitize(virus);
+    glmFacetNormals(virus);
+    glmVertexNormals(virus, 90.0);
+    globulo_blanco = glmReadOBJ(string_globulo_blanco);
+    glmUnitize(globulo_blanco);
+    glmFacetNormals(globulo_blanco);
+    glmVertexNormals(globulo_blanco, 90.0);
+}
+
+void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m) {
     glPushMatrix();
-    if (!pmodel) {
-        char a[] = "data/virus.obj";
-        pmodel = glmReadOBJ(a);
-        glmUnitize(pmodel);
-        glmFacetNormals(pmodel);
-        glmVertexNormals(pmodel, 90.0);
-    }
 
     glTranslatef(x, y, z);
     glScalef(scale, scale, scale);
-    glRotatef(15.0f, 0.0f, 0.0f, 1.0f);
-    glRotatef(20.0f, 1.0f, 0.0f, 0.0f);
-    //glScalef(8.0f, 10.0f, 8.0f);
-    glmDraw(pmodel, GLM_SMOOTH | GLM_MATERIAL);
+    glRotatef(180.0f, 0.0f, 230.0f, 0.0f);
+    glmDraw(m, GLM_SMOOTH | GLM_MATERIAL);
     glPopMatrix();
 }
 
@@ -251,7 +272,6 @@ void obtenerGlobulosRojos(float z, float p) {
 
         if (p >= 0.97) {
             globulosRojos->push_back(new Punto(r_x, r_y, z - 10));
-            globulosRojos->push_back(new Punto(r_x, r_y, z - 15));
             globulosRojos->push_back(new Punto(r_x, r_y, z - 20));
         }
     }
@@ -263,6 +283,7 @@ void obtenerGlobulosBlancos(float z, float p) {
         float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
         globulosBlancos->push_back(new Punto(r_x, r_y, z));
     }
+
 }
 
 void display() {
@@ -278,12 +299,10 @@ void display() {
 
     glClearColor(0.361, 0.027, 0.0,1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     gluLookAt(camara.x, camara.y, camara.z,
               0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
               0.0, 1.0, 0.0); // view up
-
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 
     revisarFlechas();
 
@@ -299,33 +318,36 @@ void display() {
     }
 
     vector<Punto*>::iterator it;
-    glColor3ub(227, 14, 16);
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
-        anillo((*it)->x, (*it)->y, (*it)->z, 0.1, 0.3, 1);
+        anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1);
     }
+    if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
+        globulosRojos->erase(globulosRojos->begin());
 
-    glColor3ub(255, 255, 255);
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
-        esfera((*it)->x, (*it)->y, (*it)->z, 0.2);
+        dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco);
     }
+    if (!globulosBlancos->empty() && globulosBlancos->front()->z > camara.z)
+        globulosBlancos->erase(globulosBlancos->begin());
 
     vector<Rayo*>::iterator it2;
     // pendiente de los rayos que nunca se dejan de dibujar
     for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
-        if ((*it2)->z_inicial <= camara.z + 20) {
+            glDisable(GL_LIGHTING);
             glColor3ub(252, 238, 113);
             glBegin(GL_LINES);
             glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z);
             glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z - 2);
             (*it2)->pos.z -= velocidad * 2;
             glEnd();
-            glLineWidth(5);
-            glColor3ub(252, 238, 113);
-        }
+            glEnable(GL_LIGHTING);
+    }
+    if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
+        rayos->erase(rayos->begin());
     }
 
     glColor3ub(252, 238, 113);
-    dibujarNave(nave.x, nave.y, nave.z, 0.2);
+    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
     //esfera(nave.x, nave.y, nave.z, 0.05);
 
     glColor3ub(255, 0, 0);
@@ -357,9 +379,8 @@ int main(int argc,char** argv) {
     glutInitWindowPosition(0, 0);
     glutCreateWindow ("Proyecto 1");
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
     configurarEscena();
+    cargarModelos();
 
     glutDisplayFunc(display);
     glutIdleFunc(display);

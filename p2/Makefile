@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-LDFLAGS = -lglut -lGL -lGLU -lX11 -lSDL_sound -lm -L/usr/X11R6/lib
+LDFLAGS = -lglut -lGL -lGLU -lX11 -lm -L/usr/X11R6/lib
 
 CPP = g++
 CPPOPTS = -Wall -ggdb -I.
@@ -10,7 +10,7 @@ all: main
 clean:
 	rm -f main ./*.o
 
-main: main.o ../lib/glm.o
+main: ../lib/glm.o main.o
 	$(CPP) $(CPPOPTS) $^ $(LDFLAGS) -o $@
 
 %.o: %.cpp
