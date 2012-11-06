@@ -41,7 +41,8 @@ int seconds;
 bool paused;
 
 GLint botonMouse; // boton izquierdo del mouse
-int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
+int mouseX, mouseY; // ultimas coordenadas conocidas del mouse
+int clicks;
 
 using namespace std;
 using namespace DromeAudio;
@@ -119,17 +120,71 @@ void configurarEscena() {
     glLineWidth(3);
 }
 
-// Escucha el estado actual del mouse y actualiza las estructuras de datos
-// pertinentes
+void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glScalef(scale, scale, scale);
+    glRotatef(180.0f, 0.0f, 230.0f, 0.0f);
+    glmDraw(m, GLM_SMOOTH | GLM_MATERIAL);
+    glPopMatrix();
+}
+
+
+#define BUFSIZE 512
+
 void mouse(int boton, int estado, int x, int y)
 {
-    if (boton == GLUT_LEFT_BUTTON) {
-        rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
-    }
+    clicks += 1;
+    if (boton != GLUT_LEFT_BUTTON || clicks % 2)
+        return;
+
+    mouseX = x;
+    mouseY = y;
+    rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+
+    GLuint selectBuf[BUFSIZE];
+    GLint hits;
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glSelectBuffer(BUFSIZE, selectBuf);
+    (void) glRenderMode(GL_SELECT);
+
+    glInitNames();
+    glPushName(0);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    /*  create 5x5 pixel picking region near cursor location */
+    gluPickMatrix((GLdouble) x, (GLdouble) (viewport[3] - y),
+            5.0, 5.0, viewport);
+    glOrtho(0.0, 8.0, 0.0, 8.0, -0.5, 2.5);
+
+    glLoadName(1);
+    cout << "x" << nave.x << endl;
+    glBegin(GL_QUADS);
+    glColor3f(1.0, 1.0, 0.0);
+    glVertex3i(nave.x - 10, nave.y + 10, nave.z);
+    glVertex3i(nave.x + 10, nave.y + 10, nave.z);
+    glVertex3i(nave.x + 10, nave.y - 10, nave.z);
+    glVertex3i(nave.x - 10, nave.y - 10, nave.z);
+    glEnd();
+
+    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
+
+    glPopMatrix();
+    glFlush();
+
+    hits = glRenderMode(GL_RENDER);
+    cout << hits << endl;
 }
 
 void movimientoMouse(int x, int y)
 {
+    if (botonMouse == GLUT_DOWN) {
+        //rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+    }
 }
 
 void teclasSoltar(unsigned char tecla, int x, int y)
@@ -176,14 +231,14 @@ void teclas(unsigned char tecla, int x, int y) {
         case 'D':
             estadosFlechas[1] = true;
             break;
-        /*
-        case 'e':
-        case 'E':
-            camara.z -= 5;
-            break;
-        // Q, dolly out
-        case 'q':
-        case 'Q':
+            /*
+               case 'e':
+               case 'E':
+               camara.z -= 5;
+               break;
+            // Q, dolly out
+            case 'q':
+            case 'Q':
             camara.z += 5;
             break;
             */
@@ -216,17 +271,17 @@ void teclasEspeciales(int tecla, int x, int y)
 {
     switch (tecla) {
         case GLUT_KEY_LEFT:
-                estadosFlechas[0] = true;
-                break;
+            estadosFlechas[0] = true;
+            break;
         case GLUT_KEY_RIGHT:
-                estadosFlechas[1] = true;
-                break;
+            estadosFlechas[1] = true;
+            break;
         case GLUT_KEY_UP:
-                estadosFlechas[2] = true;
-                break;
+            estadosFlechas[2] = true;
+            break;
         case GLUT_KEY_DOWN:
-                estadosFlechas[3] = true;
-                break;
+            estadosFlechas[3] = true;
+            break;
     }
 }
 
@@ -284,16 +339,6 @@ void cargarModelos() {
     glmVertexNormals(globulo_blanco, 90.0);
 }
 
-void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m) {
-    glPushMatrix();
-
-    glTranslatef(x, y, z);
-    glScalef(scale, scale, scale);
-    glRotatef(180.0f, 0.0f, 230.0f, 0.0f);
-    glmDraw(m, GLM_SMOOTH | GLM_MATERIAL);
-    glPopMatrix();
-}
-
 void obtenerGlobulosRojos(float z, float p) {
     if (p >= 0.95) {
         float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
@@ -331,8 +376,8 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     gluLookAt(camara.x, camara.y, camara.z,
-              0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
-              0.0, 1.0, 0.0); // view up
+            0.0, 0.0, 0.0, // mirando hacia (0, 0, 0)
+            0.0, 1.0, 0.0); // view up
 
     revisarFlechas();
 
@@ -363,20 +408,22 @@ void display() {
     vector<Rayo*>::iterator it2;
     // pendiente de los rayos que nunca se dejan de dibujar
     for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
-            glDisable(GL_LIGHTING);
-            glColor3ub(252, 238, 113);
-            glBegin(GL_LINES);
-            glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z);
-            glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z - 2);
-            (*it2)->pos.z -= velocidad * 2;
-            glEnd();
-            glEnable(GL_LIGHTING);
+        glDisable(GL_LIGHTING);
+        glColor3ub(252, 238, 113);
+        glBegin(GL_LINES);
+        glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z);
+        glVertex3f((*it2)->pos.x, (*it2)->pos.y, (*it2)->pos.z - 2);
+        (*it2)->pos.z -= velocidad * 2;
+        glEnd();
+        glEnable(GL_LIGHTING);
     }
     if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
         rayos->erase(rayos->begin());
     }
 
     glColor3ub(252, 238, 113);
+
+    glLoadName(1);
     dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
     //esfera(nave.x, nave.y, nave.z, 0.05);
 
@@ -411,7 +458,7 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
-    sonido("data/darling.mp3");
+    //sonido("data/darling.mp3");
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
@@ -431,6 +478,7 @@ int main(int argc,char** argv) {
     rayos = new vector<Rayo*>;
 
     srand(time(NULL));
+
     glutMainLoop();
 
     return 0;
