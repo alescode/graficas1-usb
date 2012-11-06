@@ -1,11 +1,14 @@
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
 #include <vector>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <DromeAudio/AudioContext.h>
+#include <DromeAudio/AudioDriver.h>
+#include <DromeAudio/Exception.h>
 #else
 #include <GL/glut.h>
 #endif
@@ -41,6 +44,7 @@ GLint botonMouse; // boton izquierdo del mouse
 int mouseX = 0, mouseY = 0; // ultimas coordenadas conocidas del mouse
 
 using namespace std;
+using namespace DromeAudio;
 
 vector<Punto*>* globulosRojos;
 vector<Punto*>* globulosBlancos;
@@ -49,6 +53,9 @@ vector<Rayo*>* rayos;
 
 char string_globulo_blanco[] = "data/ghost.obj";
 char string_virus[] = "data/virus.obj";
+
+SoundEmitterPtr emitter_disparo;
+AudioContext* context_disparo;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -64,6 +71,29 @@ void anillo(float x, float y, float z,
     glTranslatef(x,y,z);
     glutSolidTorus(innerRadius, outerRadius, 12, 12);
     glPopMatrix();
+}
+
+void sonido(string archivo) {
+    SoundPtr sound;
+    try {
+        sound = Sound::create(archivo.c_str());
+    } catch(Exception ex) {
+        fprintf(stderr, "Couldn't open");
+    }
+    AudioDriver *driver;
+    try {
+        driver = AudioDriver::create();
+    } catch(Exception ex) {
+        fprintf(stderr, "Audio driver initialization failed\n");
+    }
+
+    // create context
+    AudioContext *context = new AudioContext(driver->getSampleRate());
+    driver->setAudioContext(context);
+
+    // create sound emitter and loop until it's done playing
+    SoundEmitterPtr emitter = context->playSound(sound);
+    emitter->setLoop(false);
 }
 
 void configurarEscena() { 
@@ -95,6 +125,7 @@ void mouse(int boton, int estado, int x, int y)
 {
     if (boton == GLUT_LEFT_BUTTON) {
         rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+        //sonido("data/disparo.mp3");
     }
 }
 
@@ -381,6 +412,7 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
+    sonido("data/darling.mp3");
 
     glutDisplayFunc(display);
     glutIdleFunc(display);

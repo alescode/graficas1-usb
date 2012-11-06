@@ -1,6 +1,8 @@
 .PHONY: all clean
 
-LDFLAGS = -lglut -lGL -lGLU -lX11 -lm -L/usr/X11R6/lib
+LDFLAGS = -lglut -lGL -lGLU -lX11 -lm -L/usr/X11R6/lib \
+-lDromeAudio -framework Cocoa -framework CoreAudio -framework AudioUnit \
+-framework AudioToolbox 
 
 CPP = g++
 CPPOPTS = -Wall -ggdb -I.
