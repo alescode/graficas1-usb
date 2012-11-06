@@ -457,6 +457,10 @@ void display() {
     out << score;
     drawText(out.str().c_str(), 18, 12.5, camara.z - 50);
 
+    std::stringstream out2;
+    out2 << 60 - int(seconds);
+    drawText(out2.str().c_str(), -20, 12.5, camara.z - 50);
+
     // Recoleccion de basura
     if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
         globulosRojos->erase(globulosRojos->begin());
