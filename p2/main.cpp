@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <vector>
+#include <sstream>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -22,6 +23,7 @@
 #define VELOCIDAD_MINIMA 0.015625
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
+typedef enum color {rojo, gris};
 
 bool estadosFlechas[4] = {false};
 
@@ -57,8 +59,7 @@ int numero_globulo = 1;
 char string_globulo_blanco[] = "data/ghost.obj";
 char string_virus[] = "data/virus.obj";
 
-SoundEmitterPtr emitter_disparo;
-AudioContext* context_disparo;
+int score;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -69,10 +70,34 @@ void esfera(float x, float y, float z, float radius) {
 
 void anillo(float x, float y, float z,
         float innerRadius, float outerRadius,
-        float rotate) {
+        float rotate, color c) {
     glPushMatrix();
     glTranslatef(x,y,z);
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+
+    if (c == rojo)
+        glColor4f(1.0, 0.0, 0.0, 0.0);
+    else
+        glColor4f(0.3, 0.3, 0.3, 0.0);
+
     glutSolidTorus(innerRadius, outerRadius, 12, 12);
+    glDisable(GL_COLOR_MATERIAL);
+
+    glPopMatrix();
+}
+
+void drawText(const char *string, float x,float y,float z) {
+    const char *c;
+    glPushMatrix();
+    glTranslatef(x,y,z);
+    glScalef(0.018f,0.016f,z);
+    for (c=string; *c != '\0'; c++)
+    {
+        glLineWidth(5);
+        glutStrokeCharacter(GLUT_STROKE_ROMAN , *c);
+    }
     glPopMatrix();
 }
 
@@ -397,8 +422,19 @@ void display() {
 
     dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
     vector<Punto*>::iterator it;
+
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
-        anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1);
+        if ((*it)->z >= nave.z &&
+                (*it)->y - 0.2 <= nave.y && nave.y <= (*it)->y + 0.2 &&
+                (*it)->x - 0.2 <= nave.x && nave.x <= (*it)->x + 0.2) {
+            anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1, gris);
+            if ((*it)->z == nave.z) {
+                score += 1;
+            }
+        }
+        else {
+            anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1, rojo);
+        }
     }
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
         dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco, GL_RENDER);
@@ -417,6 +453,10 @@ void display() {
         glEnable(GL_LIGHTING);
     }
 
+    std::stringstream out;
+    out << score;
+    drawText(out.str().c_str(), 18, 12.5, camara.z - 50);
+
     // Recoleccion de basura
     if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
         globulosRojos->erase(globulosRojos->begin());
@@ -427,7 +467,7 @@ void display() {
     }
 
     glLoadName(1);
-    nave.z = camara.z - 2;
+    nave.z = camara.z - 3;
 
     glFlush();
 }
