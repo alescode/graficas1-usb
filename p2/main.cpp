@@ -125,7 +125,6 @@ void mouse(int boton, int estado, int x, int y)
 {
     if (boton == GLUT_LEFT_BUTTON) {
         rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
-        //sonido("data/disparo.mp3");
     }
 }
 
