@@ -132,52 +132,32 @@ void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m) {
 
 #define BUFSIZE 512
 
+Punto pixelesACoordenadas(int x, int y) {
+    return Punto((x - 512)/1024.0 * 1.6,
+                 -(y - 384)/768.0 * 1.2, 0);
+}
+
 void mouse(int boton, int estado, int x, int y)
 {
     clicks += 1;
     if (boton != GLUT_LEFT_BUTTON || clicks % 2)
         return;
 
-    mouseX = x;
-    mouseY = y;
     rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+    Punto p = pixelesACoordenadas(x, y);
 
-    GLuint selectBuf[BUFSIZE];
-    GLint hits;
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    glSelectBuffer(BUFSIZE, selectBuf);
-    (void) glRenderMode(GL_SELECT);
-
-    glInitNames();
-    glPushName(0);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-    /*  create 5x5 pixel picking region near cursor location */
-    gluPickMatrix((GLdouble) x, (GLdouble) (viewport[3] - y),
-            5.0, 5.0, viewport);
-    glOrtho(0.0, 8.0, 0.0, 8.0, -0.5, 2.5);
-
-    glLoadName(1);
-    cout << "x" << nave.x << endl;
-    glBegin(GL_QUADS);
-    glColor3f(1.0, 1.0, 0.0);
-    glVertex3i(nave.x - 10, nave.y + 10, nave.z);
-    glVertex3i(nave.x + 10, nave.y + 10, nave.z);
-    glVertex3i(nave.x + 10, nave.y - 10, nave.z);
-    glVertex3i(nave.x - 10, nave.y - 10, nave.z);
-    glEnd();
-
-    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
-
-    glPopMatrix();
-    glFlush();
-
-    hits = glRenderMode(GL_RENDER);
-    cout << hits << endl;
+    vector<Punto*>::iterator it;
+    for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
+        if ((*it)->x - 0.1 <= p.x && p.x <= (*it)->x + 0.1 &&
+            (*it)->y - 0.1 <= p.y && p.y <= (*it)->y + 0.1) {
+            cout << "OUCH!" << endl;
+        }
+        else {
+            cout << "MISS" << endl;
+            cout << (*it)->x << "--" << (*it)->y << endl;
+            cout << (*it)->y << "--" << (*it)->y << endl;
+        }
+    }
 }
 
 void movimientoMouse(int x, int y)
