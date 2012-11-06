@@ -56,6 +56,7 @@ char string_virus[] = "data/virus.obj";
 
 SoundEmitterPtr emitter_disparo;
 AudioContext* context_disparo;
+AudioDriver *driver_disparo;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
@@ -71,6 +72,46 @@ void anillo(float x, float y, float z,
     glTranslatef(x,y,z);
     glutSolidTorus(innerRadius, outerRadius, 12, 12);
     glPopMatrix();
+}
+
+SoundPtr cargarSilencio() {
+    SoundPtr sound;
+    try {
+        sound = Sound::create("data/silencio.mp3");
+    } catch(Exception ex) {
+        fprintf(stderr, "Couldn't open");
+    }
+    try {
+        driver_disparo = AudioDriver::create();
+    } catch(Exception ex) {
+        fprintf(stderr, "Audio driver_disparo initialization failed\n");
+    }
+    // create context
+    context_disparo = new AudioContext(driver_disparo->getSampleRate());
+    driver_disparo->setAudioContext(context_disparo);
+
+    emitter_disparo = context_disparo->playSound(sound);
+    emitter_disparo->setLoop(true);
+}
+
+void sonidoDisparo(string archivo) {
+    SoundPtr sound;
+    try {
+        sound = Sound::create(archivo.c_str());
+    } catch(Exception ex) {
+        fprintf(stderr, "Couldn't open");
+    }
+    try {
+        driver_disparo = AudioDriver::create();
+    } catch(Exception ex) {
+        fprintf(stderr, "Audio driver_disparo initialization failed\n");
+    }
+    // create context
+    context_disparo = new AudioContext(driver_disparo->getSampleRate());
+    driver_disparo->setAudioContext(context_disparo);
+
+    emitter_disparo = context_disparo->playSound(sound);
+    emitter_disparo->setLoop(false);
 }
 
 void sonido(string archivo) {
@@ -125,7 +166,7 @@ void mouse(int boton, int estado, int x, int y)
 {
     if (boton == GLUT_LEFT_BUTTON) {
         rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
-        //sonido("data/disparo.mp3");
+        sonidoDisparo("data/disparo.mp3");
     }
 }
 
@@ -324,6 +365,11 @@ void display() {
     seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
     //if (seconds > 0)
     //    cout << frames / seconds << endl;
+    if (emitter_disparo != NULL && emitter_disparo->isDone()) {
+        sonidoDisparo("data/silencio.mp3");
+        //delete driver_disparo;
+        //delete context_disparo;
+    }
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -412,7 +458,7 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
-    sonido("data/darling.mp3");
+    //sonido("data/darling.mp3");
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
