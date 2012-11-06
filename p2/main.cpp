@@ -15,7 +15,7 @@
 
 #include "../lib/constantes.h"
 #include "../lib/punto.h"
-#include "../lib/rayo.h"
+#include "../lib/objeto.h"
 #include "../lib/glm.h"
 
 #define VELOCIDAD_MAXIMA 0.125
@@ -50,7 +50,9 @@ using namespace DromeAudio;
 vector<Punto*>* globulosRojos;
 vector<Punto*>* globulosBlancos;
 
-vector<Rayo*>* rayos;
+vector<Objeto*>* rayos;
+
+int numero_globulo = 1;
 
 char string_globulo_blanco[] = "data/ghost.obj";
 char string_virus[] = "data/virus.obj";
@@ -120,7 +122,11 @@ void configurarEscena() {
     glLineWidth(3);
 }
 
-void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m) {
+void dibujarModelo(float x, float y, float z, float scale, GLMmodel* m, GLenum mode) {
+    if (mode == GL_SELECT) {
+        glLoadName(1);
+    }
+
     glPushMatrix();
     glTranslatef(x, y, z);
     glScalef(scale, scale, scale);
@@ -140,7 +146,7 @@ void mouse(int boton, int estado, int x, int y)
 
     mouseX = x;
     mouseY = y;
-    rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+    rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
 
     GLuint selectBuf[BUFSIZE];
     GLint hits;
@@ -152,7 +158,7 @@ void mouse(int boton, int estado, int x, int y)
 
     glInitNames();
     glPushName(0);
-    glMatrixMode(GL_PROJECTION);
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
 
@@ -162,7 +168,7 @@ void mouse(int boton, int estado, int x, int y)
     glOrtho(0.0, 8.0, 0.0, 8.0, -0.5, 2.5);
 
     glLoadName(1);
-    cout << "x" << nave.x << endl;
+    cout << "x nave: " << nave.x << endl;
     glBegin(GL_QUADS);
     glColor3f(1.0, 1.0, 0.0);
     glVertex3i(nave.x - 10, nave.y + 10, nave.z);
@@ -170,8 +176,6 @@ void mouse(int boton, int estado, int x, int y)
     glVertex3i(nave.x + 10, nave.y - 10, nave.z);
     glVertex3i(nave.x - 10, nave.y - 10, nave.z);
     glEnd();
-
-    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
 
     glPopMatrix();
     glFlush();
@@ -183,7 +187,6 @@ void mouse(int boton, int estado, int x, int y)
 void movimientoMouse(int x, int y)
 {
     if (botonMouse == GLUT_DOWN) {
-        //rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
     }
 }
 
@@ -262,7 +265,7 @@ void teclas(unsigned char tecla, int x, int y) {
             }
             break;
         case ' ':
-            rayos->push_back(new Rayo(Punto(nave.x, nave.y, nave.z), nave.z));
+            rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
             break;
     }
 }
@@ -392,20 +395,16 @@ void display() {
         obtenerGlobulosBlancos(camara.z - 30, pBlancos);
     }
 
+    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
     vector<Punto*>::iterator it;
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
         anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1);
     }
-    if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
-        globulosRojos->erase(globulosRojos->begin());
-
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
-        dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco);
+        dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco, GL_RENDER);
     }
-    if (!globulosBlancos->empty() && globulosBlancos->front()->z > camara.z)
-        globulosBlancos->erase(globulosBlancos->begin());
 
-    vector<Rayo*>::iterator it2;
+    vector<Objeto*>::iterator it2;
     // pendiente de los rayos que nunca se dejan de dibujar
     for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
         glDisable(GL_LIGHTING);
@@ -417,17 +416,17 @@ void display() {
         glEnd();
         glEnable(GL_LIGHTING);
     }
+
+    // Recoleccion de basura
+    if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
+        globulosRojos->erase(globulosRojos->begin());
+    if (!globulosBlancos->empty() && globulosBlancos->front()->z > camara.z)
+        globulosBlancos->erase(globulosBlancos->begin());
     if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
         rayos->erase(rayos->begin());
     }
 
-    glColor3ub(252, 238, 113);
-
     glLoadName(1);
-    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus);
-    //esfera(nave.x, nave.y, nave.z, 0.05);
-
-    glColor3ub(255, 0, 0);
     nave.z = camara.z - 2;
 
     glFlush();
@@ -475,7 +474,7 @@ int main(int argc,char** argv) {
 
     globulosRojos = new vector<Punto*>;
     globulosBlancos = new vector<Punto*>;
-    rayos = new vector<Rayo*>;
+    rayos = new vector<Objeto*>;
 
     srand(time(NULL));
 
