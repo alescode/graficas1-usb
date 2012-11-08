@@ -7,6 +7,7 @@
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
+#include <AL/alut.h>
 #include <DromeAudio/AudioContext.h>
 #include <DromeAudio/AudioDriver.h>
 #include <DromeAudio/Exception.h>
@@ -54,6 +55,9 @@ vector<Punto*>* globulosBlancos;
 
 vector<Objeto*>* rayos;
 
+ALuint sfx[1];
+ALuint sfx_fuentes[1];
+
 int numero_globulo = 1;
 
 char string_globulo_blanco[] = "data/ghost.obj";
@@ -99,6 +103,36 @@ void drawText(const char *string, float x,float y,float z) {
         glutStrokeCharacter(GLUT_STROKE_ROMAN , *c);
     }
     glPopMatrix();
+}
+
+void cargarSfx() {
+    alutInit(0, NULL);
+    alGenBuffers(1, sfx);
+    ALenum format;
+    ALvoid* data;
+    ALsizei size, freq;
+
+    ALfloat listenerPos[]={0.0,0.0,4.0};
+    ALfloat listenerVel[]={0.0,0.0,0.0};
+    ALfloat listenerOri[]={0.0,0.0,1.0, 0.0,1.0,0.0};
+    ALfloat source0Pos[]={-2.0, 0.0, 0.0};
+    ALfloat source0Vel[]={ 0.0, 0.0, 0.0};
+    alListenerfv(AL_POSITION,listenerPos);
+    alListenerfv(AL_VELOCITY,listenerVel);
+    alListenerfv(AL_ORIENTATION,listenerOri);
+
+    alGenBuffers(1, sfx);
+    alutLoadWAVFile((ALbyte*) "data/disparo.wav",&format,&data,&size,&freq);
+    alBufferData(sfx[0],format,data,size,freq);
+    alutUnloadWAV(format,data,size,freq);
+
+    alGenSources(1, sfx_fuentes);
+    alSourcef(sfx_fuentes[0],AL_PITCH,1.0f);
+    alSourcef(sfx_fuentes[0],AL_GAIN,1.0f);
+    alSourcefv(sfx_fuentes[0],AL_POSITION,source0Pos);
+    alSourcefv(sfx_fuentes[0],AL_VELOCITY,source0Vel);
+    alSourcei(sfx_fuentes[0],AL_BUFFER, sfx[0]);
+    alSourcei(sfx_fuentes[0],AL_LOOPING,AL_FALSE);
 }
 
 void sonido(string archivo) {
@@ -175,20 +209,10 @@ void mouse(int boton, int estado, int x, int y)
         return;
 
     rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
+    alSourcePlay(sfx_fuentes[0]);
     Punto p = pixelesACoordenadas(x, y);
 
     vector<Punto*>::iterator it;
-    for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
-        if ((*it)->x - 0.1 <= p.x && p.x <= (*it)->x + 0.1 &&
-            (*it)->y - 0.1 <= p.y && p.y <= (*it)->y + 0.1) {
-            cout << "OUCH!" << endl;
-        }
-        else {
-            cout << "MISS" << endl;
-            cout << (*it)->x << "--" << (*it)->y << endl;
-            cout << (*it)->y << "--" << (*it)->y << endl;
-        }
-    }
     mouseX = x;
     mouseY = y;
     rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
@@ -213,7 +237,6 @@ void mouse(int boton, int estado, int x, int y)
     glOrtho(0.0, 8.0, 0.0, 8.0, -0.5, 2.5);
 
     glLoadName(1);
-    cout << "x nave: " << nave.x << endl;
     glBegin(GL_QUADS);
     glColor3f(1.0, 1.0, 0.0);
     glVertex3i(nave.x - 10, nave.y + 10, nave.z);
@@ -226,7 +249,6 @@ void mouse(int boton, int estado, int x, int y)
     glFlush();
 
     hits = glRenderMode(GL_RENDER);
-    cout << hits << endl;
 }
 
 void movimientoMouse(int x, int y)
@@ -521,7 +543,8 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
-    //sonido("data/darling.mp3");
+    cargarSfx();
+    sonido("data/darling.mp3");
 
     glutDisplayFunc(display);
     glutIdleFunc(display);

@@ -2,7 +2,7 @@
 
 LDFLAGS = -lglut -lGL -lGLU -lX11 -lm -L/usr/X11R6/lib \
 -lDromeAudio -framework Cocoa -framework CoreAudio -framework AudioUnit \
--framework AudioToolbox 
+-framework AudioToolbox -framework OpenAL -framework Foundation
 
 CPP = g++
 CPPOPTS = -Wall -ggdb -I.
