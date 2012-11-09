@@ -56,6 +56,7 @@ deque<Punto*>* globulosRojos;
 deque<Punto*>* globulosBlancos;
 
 deque<Objeto*>* rayos;
+deque<Objeto*>* explosiones;
 
 #define NUM_SONIDOS 2
 ALuint sfx[NUM_SONIDOS];
@@ -67,11 +68,13 @@ char string_globulo_blanco[] = "data/ghost.obj";
 char string_virus[] = "data/virus.obj";
 
 int score;
+int parpadeo;
 
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
+    glColor3ub(255,255,255);
     glTranslatef(x,y,z);
-    glutSolidSphere(radius, 3, 3);
+    glutSolidSphere(radius, 10, 10);
     glPopMatrix();
 }
 
@@ -432,6 +435,28 @@ void obtenerGlobulosBlancos(float z, float p) {
 
 }
 
+void dibujarCuadradoAlrededor(float x, float y, float z) {
+    glDisable(GL_LIGHTING);
+    glColor3ub(252, 238, 113);
+    glBegin(GL_LINES);
+    glVertex3f(x - 0.2, y + 0.15, z);
+    glVertex3f(x + 0.2, y + 0.15, z);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex3f(x + 0.2, y + 0.15, z);
+    glVertex3f(x + 0.2, y - 0.1, z);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex3f(x + 0.2, y - 0.1, z);
+    glVertex3f(x - 0.2, y - 0.1, z);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex3f(x - 0.2, y + 0.15, z);
+    glVertex3f(x - 0.2, y - 0.1, z);
+    glEnd();
+    glEnable(GL_LIGHTING);
+}
+
 void display() {
     frames += 1;
     tiempo = glutGet(GLUT_ELAPSED_TIME);
@@ -478,7 +503,51 @@ void display() {
         obtenerGlobulosBlancos(camara.z - 30, pBlancos);
     }
 
-    dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
+    if (!(int(ceil(tiempo_juego)) % 60)) {
+        inicio_pausa = glutGet(GLUT_ELAPSED_TIME);
+        cout << "<computador>: "
+             << "Juego terminado. Desea jugar otra partida?" << endl
+             << "Presione [s]í o [n]o" << endl
+             << "<usuario>: ";
+        char c = getchar();
+        while (c != 's' && c != 'n') {
+            c = getchar();
+        }
+        cout << c << endl;
+        if (c == 's') {
+            fin_pausa = glutGet(GLUT_ELAPSED_TIME);
+            return;
+        }
+        else {
+            exit(0);
+        }
+    }
+
+    std::stringstream out;
+    out << score;
+    dibujarTexto(out.str().c_str(), 18, 12.5, camara.z - 50, 1);
+
+    std::stringstream out2;
+    out2 << 60 - (int(ceil(tiempo_juego)) % 60) << endl;
+    dibujarTexto(out2.str().c_str(), -20, 12.5, camara.z - 50, 1);
+
+    if (contador_velocidad) {
+        contador_velocidad -= 1;
+        std::stringstream out3;
+        out3 << velocidad / VELOCIDAD_MAXIMA << "x";
+        dibujarTexto(out3.str().c_str(), 13, -14, camara.z - 50, 1);
+    }
+
+    if (parpadeo) {
+        if (frames % 20 != 0) {
+            dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
+        }
+        parpadeo -= 1;
+    }
+    else {
+        dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
+    }
+
     deque<Punto*>::iterator it;
 
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
@@ -495,16 +564,18 @@ void display() {
         }
     }
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
+
+        //dibujarCuadradoAlrededor((*it)->x,(*it)->y, (*it)->z);
         dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco, GL_RENDER);
         if ((*it)->z == nave.z &&
-            (*it)->y - 0.2 <= nave.y && nave.y <= (*it)->y + 0.2 &&
+            (*it)->y - 0.1 <= nave.y && nave.y <= (*it)->y + 0.15 &&
             (*it)->x - 0.2 <= nave.x && nave.x <= (*it)->x + 0.2) {
+                parpadeo = 60;
                 score = max(0, score - 3);
         }
     }
 
     deque<Objeto*>::iterator it2;
-    // pendiente de los rayos que nunca se dejan de dibujar
     for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
         glDisable(GL_LIGHTING);
         glColor3ub(252, 238, 113);
@@ -516,29 +587,21 @@ void display() {
         glEnable(GL_LIGHTING);
         for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
             if ((*it)->z == (*it2)->pos.z &&
-                (*it)->y - 0.4 <= (*it2)->pos.y && (*it2)->pos.y <= (*it)->y + 0.4 &&
-                (*it)->x - 0.4 <= (*it2)->pos.x && (*it2)->pos.x <= (*it)->x + 0.4) {
-                (*it2)->pos.z = camara.z - 100;
+                (*it)->y - 0.1 <= (*it2)->pos.y && (*it2)->pos.y <= (*it)->y + 0.15 &&
+                (*it)->x - 0.2 <= (*it2)->pos.x && (*it2)->pos.x <= (*it)->x + 0.2) {
+
+                explosiones->push_back(new Objeto(Punto((*it)->x, (*it)->y, 
+                                      (*it)->z), 0));
+                (*it2)->pos.z = camara.z + 1000;
                 (*it)->z = camara.z + 100;
                 score += 1;
             }
         }
     }
-
-    std::stringstream out;
-    out << score;
-    dibujarTexto(out.str().c_str(), 18, 12.5, camara.z - 50, 1);
-
-    std::stringstream out2;
-    //out2 << ceil(60 - tiempo_juego) << endl;
-    out2 << (60 - tiempo_juego) << endl;
-    dibujarTexto(out2.str().c_str(), -20, 12.5, camara.z - 50, 1);
-
-    if (contador_velocidad) {
-        contador_velocidad -= 1;
-        std::stringstream out3;
-        out3 << velocidad / VELOCIDAD_MAXIMA << "x";
-        dibujarTexto(out3.str().c_str(), 13, -14, camara.z - 50, 1);
+    for (it2 = explosiones->begin(); it2 < explosiones->end(); ++it2) {
+        esfera((*it2)->pos.x,(*it2)->pos.y,(*it2)->pos.z, 
+                0.5 * ((*it2)->z_inicial/30));
+        (*it2)->z_inicial += 1;
     }
 
     // Recoleccion de basura
@@ -548,6 +611,9 @@ void display() {
         globulosBlancos->pop_front();
     if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
         rayos->pop_front();
+    }
+    if (!explosiones->empty() && explosiones->front()->z_inicial > 30) {
+        explosiones->pop_front();
     }
 
     glLoadName(1);
@@ -599,6 +665,7 @@ int main(int argc,char** argv) {
 
     globulosRojos = new deque<Punto*>;
     globulosBlancos = new deque<Punto*>;
+    explosiones = new deque<Objeto*>;
     rayos = new deque<Objeto*>;
 
     srand(time(NULL));
