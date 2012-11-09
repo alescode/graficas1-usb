@@ -40,6 +40,7 @@ int frames;
 float tiempo, tiempo_juego;
 float tiempos_velocidades[3] = {0};
 float inicio_pausa, fin_pausa;
+float inicio_nuevojuego, fin_nuevojuego;
 /* 0: 0.5x
  * 1: 0.25x
  * 2: 0.125x */
@@ -70,11 +71,19 @@ char string_virus[] = "data/virus.obj";
 int score;
 int parpadeo;
 
+float emision[] = {0.8f, 0.8f, 0.8f, 0.0f};
+float neutro[] = {0.0f, 0.0f, 0.0f, 1.0f};
+bool reset;
+
 void esfera(float x, float y, float z, float radius) {
     glPushMatrix();
     glColor3ub(255,255,255);
     glTranslatef(x,y,z);
+    glMaterialfv(GL_FRONT, GL_EMISSION, emision);
+    glMaterialfv(GL_FRONT, GL_SHININESS, emision);
     glutSolidSphere(radius, 10, 10);
+    glMaterialfv(GL_FRONT, GL_EMISSION, neutro);
+    glMaterialfv(GL_FRONT, GL_SHININESS, neutro);
     glPopMatrix();
 }
 
@@ -201,7 +210,7 @@ Punto pixelesACoordenadas(int x, int y) {
 
 void disparar() {
     rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
-    //alSourcePlay(sfx_fuentes[1]);
+    alSourcePlay(sfx_fuentes[1]);
 }
 
 void mouse(int boton, int estado, int x, int y)
@@ -503,24 +512,17 @@ void display() {
         obtenerGlobulosBlancos(camara.z - 30, pBlancos);
     }
 
-    if (!(int(ceil(tiempo_juego)) % 60)) {
-        inicio_pausa = glutGet(GLUT_ELAPSED_TIME);
-        cout << "<computador>: "
-             << "Juego terminado. Desea jugar otra partida?" << endl
-             << "Presione [s]í o [n]o" << endl
-             << "<usuario>: ";
-        char c = getchar();
-        while (c != 's' && c != 'n') {
-            c = getchar();
+    if ((int(ceil(tiempo_juego)) == 60)) {
+        alSourceStop(sfx_fuentes[0]);
+        for (int i = 0; i < 120; i++) {
+            dibujarTexto((char*) "fin", -0.1, 0, camara.z - 1, 0.05f);
+
+            std::stringstream o;
+            o << score;
+            dibujarTexto(o.str().c_str(), 0.1, -0.2, camara.z - 1, 0.05f);
+            glFlush();
         }
-        cout << c << endl;
-        if (c == 's') {
-            fin_pausa = glutGet(GLUT_ELAPSED_TIME);
-            return;
-        }
-        else {
-            exit(0);
-        }
+        exit(0);
     }
 
     std::stringstream out;
@@ -648,7 +650,7 @@ int main(int argc,char** argv) {
     configurarEscena();
     cargarModelos();
     cargarSonidos();
-    //alSourcePlay(sfx_fuentes[0]);
+    alSourcePlay(sfx_fuentes[0]);
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
@@ -672,6 +674,7 @@ int main(int argc,char** argv) {
     tiempo = 0;
     inicio_pausa = 0;
     fin_pausa = 0;
+    reset = false;
 
     glutMainLoop();
 
