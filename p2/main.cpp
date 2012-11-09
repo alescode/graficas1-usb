@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <vector>
+#include <deque>
 #include <sstream>
 
 #ifdef __APPLE__
@@ -52,10 +52,10 @@ int clicks;
 
 using namespace std;
 
-vector<Punto*>* globulosRojos;
-vector<Punto*>* globulosBlancos;
+deque<Punto*>* globulosRojos;
+deque<Punto*>* globulosBlancos;
 
-vector<Objeto*>* rayos;
+deque<Objeto*>* rayos;
 
 #define NUM_SONIDOS 2
 ALuint sfx[NUM_SONIDOS];
@@ -209,7 +209,7 @@ void mouse(int boton, int estado, int x, int y)
 
     Punto p = pixelesACoordenadas(x, y);
 
-    vector<Punto*>::iterator it;
+    deque<Punto*>::iterator it;
     mouseX = x;
     mouseY = y;
     disparar();
@@ -441,7 +441,7 @@ void display() {
         return;
     }
 
-    int pos_velocidades = log2(VELOCIDAD_MAXIMA/velocidad) - 1;
+    //int pos_velocidades = log2(VELOCIDAD_MAXIMA/velocidad) - 1;
     /*if (velocidad < VELOCIDAD_MAXIMA)
         tiempos_velocidades[pos_velocidades] =
     */
@@ -479,13 +479,13 @@ void display() {
     }
 
     dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
-    vector<Punto*>::iterator it;
+    deque<Punto*>::iterator it;
 
     for (it = globulosRojos->begin(); it < globulosRojos->end(); ++it) {
         if ((*it)->z >= nave.z &&
-                (*it)->y - 0.2 <= nave.y && nave.y <= (*it)->y + 0.2 &&
-                (*it)->x - 0.2 <= nave.x && nave.x <= (*it)->x + 0.2) {
-            anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1, gris);
+            (*it)->y - 0.2 <= nave.y && nave.y <= (*it)->y + 0.2 &&
+            (*it)->x - 0.2 <= nave.x && nave.x <= (*it)->x + 0.2) {
+                anillo((*it)->x, (*it)->y, (*it)->z, 0.05, 0.25, 1, gris);
             if ((*it)->z == nave.z) {
                 score += 1;
             }
@@ -496,9 +496,14 @@ void display() {
     }
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
         dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco, GL_RENDER);
+        if ((*it)->z == nave.z &&
+            (*it)->y - 0.2 <= nave.y && nave.y <= (*it)->y + 0.2 &&
+            (*it)->x - 0.2 <= nave.x && nave.x <= (*it)->x + 0.2) {
+                score = max(0, score - 3);
+        }
     }
 
-    vector<Objeto*>::iterator it2;
+    deque<Objeto*>::iterator it2;
     // pendiente de los rayos que nunca se dejan de dibujar
     for (it2 = rayos->begin(); it2 < rayos->end(); ++it2) {
         glDisable(GL_LIGHTING);
@@ -509,6 +514,15 @@ void display() {
         (*it2)->pos.z -= velocidad * 2;
         glEnd();
         glEnable(GL_LIGHTING);
+        for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
+            if ((*it)->z == (*it2)->pos.z &&
+                (*it)->y - 0.4 <= (*it2)->pos.y && (*it2)->pos.y <= (*it)->y + 0.4 &&
+                (*it)->x - 0.4 <= (*it2)->pos.x && (*it2)->pos.x <= (*it)->x + 0.4) {
+                (*it2)->pos.z = camara.z - 100;
+                (*it)->z = camara.z + 100;
+                score += 1;
+            }
+        }
     }
 
     std::stringstream out;
@@ -529,11 +543,11 @@ void display() {
 
     // Recoleccion de basura
     if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
-        globulosRojos->erase(globulosRojos->begin());
+        globulosRojos->pop_front();
     if (!globulosBlancos->empty() && globulosBlancos->front()->z > camara.z)
-        globulosBlancos->erase(globulosBlancos->begin());
+        globulosBlancos->pop_front();
     if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
-        rayos->erase(rayos->begin());
+        rayos->pop_front();
     }
 
     glLoadName(1);
@@ -583,9 +597,9 @@ int main(int argc,char** argv) {
     glutMouseFunc(mouse);
     glutMotionFunc(movimientoMouse);
 
-    globulosRojos = new vector<Punto*>;
-    globulosBlancos = new vector<Punto*>;
-    rayos = new vector<Objeto*>;
+    globulosRojos = new deque<Punto*>;
+    globulosBlancos = new deque<Punto*>;
+    rayos = new deque<Objeto*>;
 
     srand(time(NULL));
     tiempo = 0;
