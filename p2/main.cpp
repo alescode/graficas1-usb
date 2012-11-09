@@ -8,9 +8,6 @@
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #include <AL/alut.h>
-#include <DromeAudio/AudioContext.h>
-#include <DromeAudio/AudioDriver.h>
-#include <DromeAudio/Exception.h>
 #else
 #include <GL/glut.h>
 #endif
@@ -22,6 +19,7 @@
 
 #define VELOCIDAD_MAXIMA 0.125
 #define VELOCIDAD_MINIMA 0.015625
+int contador_velocidad;
 
 typedef enum coordenada {coordenada_x, coordenada_y, coordenada_z};
 typedef enum color {rojo, gris};
@@ -39,7 +37,12 @@ GLMmodel* virus = NULL;
 GLMmodel* globulo_blanco = NULL;
 
 int frames;
-int seconds;
+float tiempo, tiempo_juego;
+float tiempos_velocidades[3] = {0};
+float inicio_pausa, fin_pausa;
+/* 0: 0.5x
+ * 1: 0.25x
+ * 2: 0.125x */
 
 bool paused;
 
@@ -48,15 +51,15 @@ int mouseX, mouseY; // ultimas coordenadas conocidas del mouse
 int clicks;
 
 using namespace std;
-using namespace DromeAudio;
 
 vector<Punto*>* globulosRojos;
 vector<Punto*>* globulosBlancos;
 
 vector<Objeto*>* rayos;
 
-ALuint sfx[1];
-ALuint sfx_fuentes[1];
+#define NUM_SONIDOS 2
+ALuint sfx[NUM_SONIDOS];
+ALuint sfx_fuentes[NUM_SONIDOS];
 
 int numero_globulo = 1;
 
@@ -92,22 +95,26 @@ void anillo(float x, float y, float z,
     glPopMatrix();
 }
 
-void drawText(const char *string, float x,float y,float z) {
+void dibujarTexto(const char *string, float x,float y,float z, float scale) {
     const char *c;
     glPushMatrix();
     glTranslatef(x,y,z);
     glScalef(0.018f,0.016f,z);
+    glDisable(GL_LIGHTING);
+    glColor3d(1.0f, 1.0f, 1.0f);
+    glScalef(scale, scale, scale);
     for (c=string; *c != '\0'; c++)
     {
-        glLineWidth(5);
+        glLineWidth(4);
         glutStrokeCharacter(GLUT_STROKE_ROMAN , *c);
     }
+    glEnable(GL_LIGHTING);
     glPopMatrix();
 }
 
-void cargarSfx() {
+void cargarSonidos() {
     alutInit(0, NULL);
-    alGenBuffers(1, sfx);
+    alGenBuffers(NUM_SONIDOS, sfx);
     ALenum format;
     ALvoid* data;
     ALsizei size, freq;
@@ -121,41 +128,28 @@ void cargarSfx() {
     alListenerfv(AL_VELOCITY,listenerVel);
     alListenerfv(AL_ORIENTATION,listenerOri);
 
-    alGenBuffers(1, sfx);
-    alutLoadWAVFile((ALbyte*) "data/disparo.wav",&format,&data,&size,&freq);
+    alGenBuffers(NUM_SONIDOS, sfx);
+    alutLoadWAVFile((ALbyte*) "data/darling.wav",&format,&data,&size,&freq);
     alBufferData(sfx[0],format,data,size,freq);
     alutUnloadWAV(format,data,size,freq);
+    alutLoadWAVFile((ALbyte*) "data/disparo.wav",&format,&data,&size,&freq);
+    alBufferData(sfx[1],format,data,size,freq);
+    alutUnloadWAV(format,data,size,freq);
 
-    alGenSources(1, sfx_fuentes);
+    alGenSources(NUM_SONIDOS, sfx_fuentes);
     alSourcef(sfx_fuentes[0],AL_PITCH,1.0f);
     alSourcef(sfx_fuentes[0],AL_GAIN,1.0f);
     alSourcefv(sfx_fuentes[0],AL_POSITION,source0Pos);
     alSourcefv(sfx_fuentes[0],AL_VELOCITY,source0Vel);
     alSourcei(sfx_fuentes[0],AL_BUFFER, sfx[0]);
     alSourcei(sfx_fuentes[0],AL_LOOPING,AL_FALSE);
-}
 
-void sonido(string archivo) {
-    SoundPtr sound;
-    try {
-        sound = Sound::create(archivo.c_str());
-    } catch(Exception ex) {
-        fprintf(stderr, "Couldn't open");
-    }
-    AudioDriver *driver;
-    try {
-        driver = AudioDriver::create();
-    } catch(Exception ex) {
-        fprintf(stderr, "Audio driver initialization failed\n");
-    }
-
-    // create context
-    AudioContext *context = new AudioContext(driver->getSampleRate());
-    driver->setAudioContext(context);
-
-    // create sound emitter and loop until it's done playing
-    SoundEmitterPtr emitter = context->playSound(sound);
-    emitter->setLoop(false);
+    alSourcef(sfx_fuentes[1],AL_PITCH,1.0f);
+    alSourcef(sfx_fuentes[1],AL_GAIN,1.0f);
+    alSourcefv(sfx_fuentes[1],AL_POSITION,source0Pos);
+    alSourcefv(sfx_fuentes[1],AL_VELOCITY,source0Vel);
+    alSourcei(sfx_fuentes[1],AL_BUFFER, sfx[1]);
+    alSourcei(sfx_fuentes[1],AL_LOOPING,AL_FALSE);
 }
 
 void configurarEscena() { 
@@ -202,20 +196,23 @@ Punto pixelesACoordenadas(int x, int y) {
                  -(y - 384)/768.0 * 1.2, 0);
 }
 
+void disparar() {
+    rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
+    //alSourcePlay(sfx_fuentes[1]);
+}
+
 void mouse(int boton, int estado, int x, int y)
 {
     clicks += 1;
-    if (boton != GLUT_LEFT_BUTTON || clicks % 2)
+    if (boton != GLUT_LEFT_BUTTON)
         return;
 
-    rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
-    alSourcePlay(sfx_fuentes[0]);
     Punto p = pixelesACoordenadas(x, y);
 
     vector<Punto*>::iterator it;
     mouseX = x;
     mouseY = y;
-    rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
+    disparar();
 
     GLuint selectBuf[BUFSIZE];
     GLint hits;
@@ -279,6 +276,13 @@ void teclasSoltar(unsigned char tecla, int x, int y)
     }
 }
 
+inline int posicion_velocidad_inicio(float velocidad) {
+    return 2 * log2(VELOCIDAD_MAXIMA/velocidad) - 2;
+}
+
+inline int posicion_velocidad_final(float velocidad) {
+    return 2 * log2(VELOCIDAD_MAXIMA/velocidad - 1) - 2;
+}
 
 void teclas(unsigned char tecla, int x, int y) {
     switch (tecla) {
@@ -301,27 +305,22 @@ void teclas(unsigned char tecla, int x, int y) {
         case 'D':
             estadosFlechas[1] = true;
             break;
-            /*
-               case 'e':
-               case 'E':
-               camara.z -= 5;
-               break;
-            // Q, dolly out
-            case 'q':
-            case 'Q':
-            camara.z += 5;
-            break;
-            */
         case 'p':
         case 'P':
             paused = !paused;
+            if (paused)
+                inicio_pausa += tiempo;
+            else
+                fin_pausa += tiempo;
             break;
         case '+':
             if (paused) {
                 paused = false;
+                fin_pausa += tiempo;
             }
             else if (velocidad < VELOCIDAD_MAXIMA)
                 velocidad *= 2;
+            contador_velocidad = 90;
             break;
         case '-':
             if (velocidad > VELOCIDAD_MINIMA) {
@@ -329,10 +328,12 @@ void teclas(unsigned char tecla, int x, int y) {
             }
             else {
                 paused = true;
+                inicio_pausa += tiempo;
             }
+            contador_velocidad = 90;
             break;
         case ' ':
-            rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
+            disparar();
             break;
     }
 }
@@ -432,12 +433,27 @@ void obtenerGlobulosBlancos(float z, float p) {
 }
 
 void display() {
-    if (paused)
-        return;
     frames += 1;
-    seconds = glutGet(GLUT_ELAPSED_TIME)/1000.0;
-    //if (seconds > 0)
-    //    cout << frames / seconds << endl;
+    tiempo = glutGet(GLUT_ELAPSED_TIME);
+    if (paused) {
+        dibujarTexto((char*) "pausa", -0.15, 0, camara.z - 1, 0.05f);
+        glFlush();
+        return;
+    }
+
+    int pos_velocidades = log2(VELOCIDAD_MAXIMA/velocidad) - 1;
+    /*if (velocidad < VELOCIDAD_MAXIMA)
+        tiempos_velocidades[pos_velocidades] =
+    */
+    tiempo_juego = (tiempo
+                    - 0.5 * tiempos_velocidades[0]
+                    - 0.25 * tiempos_velocidades[1]
+                    - 0.125 * tiempos_velocidades[2]
+                    + inicio_pausa
+                    - fin_pausa)/1000.0;
+
+    //if (tiempo > 0)
+    //    cout << frames / (tiempo/1000.0) << endl;
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -497,11 +513,19 @@ void display() {
 
     std::stringstream out;
     out << score;
-    drawText(out.str().c_str(), 18, 12.5, camara.z - 50);
+    dibujarTexto(out.str().c_str(), 18, 12.5, camara.z - 50, 1);
 
     std::stringstream out2;
-    out2 << 60 - int(seconds);
-    drawText(out2.str().c_str(), -20, 12.5, camara.z - 50);
+    //out2 << ceil(60 - tiempo_juego) << endl;
+    out2 << (60 - tiempo_juego) << endl;
+    dibujarTexto(out2.str().c_str(), -20, 12.5, camara.z - 50, 1);
+
+    if (contador_velocidad) {
+        contador_velocidad -= 1;
+        std::stringstream out3;
+        out3 << velocidad / VELOCIDAD_MAXIMA << "x";
+        dibujarTexto(out3.str().c_str(), 13, -14, camara.z - 50, 1);
+    }
 
     // Recoleccion de basura
     if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
@@ -543,8 +567,8 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
-    cargarSfx();
-    sonido("data/darling.mp3");
+    cargarSonidos();
+    //alSourcePlay(sfx_fuentes[0]);
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
@@ -564,6 +588,9 @@ int main(int argc,char** argv) {
     rayos = new vector<Objeto*>;
 
     srand(time(NULL));
+    tiempo = 0;
+    inicio_pausa = 0;
+    fin_pausa = 0;
 
     glutMainLoop();
 
