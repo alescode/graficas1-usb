@@ -59,9 +59,11 @@ deque<Punto*>* globulosBlancos;
 deque<Objeto*>* rayos;
 deque<Objeto*>* explosiones;
 
+#ifdef __APPLE__
 #define NUM_SONIDOS 2
 ALuint sfx[NUM_SONIDOS];
 ALuint sfx_fuentes[NUM_SONIDOS];
+#endif
 
 int numero_globulo = 1;
 
@@ -124,6 +126,7 @@ void dibujarTexto(const char *string, float x,float y,float z, float scale) {
     glPopMatrix();
 }
 
+#ifdef __APPLE__
 void cargarSonidos() {
     alutInit(0, NULL);
     alGenBuffers(NUM_SONIDOS, sfx);
@@ -163,6 +166,7 @@ void cargarSonidos() {
     alSourcei(sfx_fuentes[1],AL_BUFFER, sfx[1]);
     alSourcei(sfx_fuentes[1],AL_LOOPING,AL_FALSE);
 }
+#endif
 
 void configurarEscena() { 
     glLoadIdentity();
@@ -210,7 +214,9 @@ Punto pixelesACoordenadas(int x, int y) {
 
 void disparar() {
     rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
+#ifdef __APPLE__
     alSourcePlay(sfx_fuentes[1]);
+#endif
 }
 
 void mouse(int boton, int estado, int x, int y)
@@ -513,7 +519,9 @@ void display() {
     }
 
     if ((int(ceil(tiempo_juego)) == 60)) {
+#ifdef __APPLE__
         alSourceStop(sfx_fuentes[0]);
+#endif
         for (int i = 0; i < 120; i++) {
             dibujarTexto((char*) "fin", -0.1, 0, camara.z - 1, 0.05f);
 
@@ -649,8 +657,11 @@ int main(int argc,char** argv) {
 
     configurarEscena();
     cargarModelos();
+
+#ifdef __APPLE__
     cargarSonidos();
     alSourcePlay(sfx_fuentes[0]);
+#endif
 
     glutDisplayFunc(display);
     glutIdleFunc(display);
