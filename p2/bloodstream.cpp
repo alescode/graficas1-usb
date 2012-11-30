@@ -106,6 +106,18 @@ void edificio(float x, float y, float z, float altura, float profundidad) {
         glPopMatrix();
 }
 
+/*void plano() {
+    glDisable(GL_LIGHTING);
+    glColor3ub(252, 238, 113);
+    glBegin(GL_QUADS);
+    glVertex4f(-0.5, 0.5, camara.z-30, 0);
+    glVertex4f(0.5, 0.5, camara.z-30, 0);
+    glVertex4f(0.5, -0.5, camara.z-30, 0);
+    glVertex4f(-0.5, -0.5, camara.z-30, 0);
+    glEnd();
+    glEnable(GL_LIGHTING);
+}*/
+
 void anillo(float x, float y, float z,
         float innerRadius, float outerRadius,
         float rotate, color c) {
@@ -478,6 +490,19 @@ void obtenerGlobulosBlancos(float z, float p) {
     }
 }
 
+void dibujarQuad(float x, float y, float z) {
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+    glColor3ub(252, 238, 113);
+    glBegin(GL_QUADS);
+    glVertex4f(x - 0.2, y - 0.1, z, 0);
+    glVertex4f(x - 0.2, y + 0.15, z, 0);
+    glVertex4f(x + 0.2, y + 0.15, z, 0);
+    glVertex4f(x + 0.2, y - 0.1, z, 0);
+    glEnd();
+    glEnable(GL_LIGHTING);
+}
+
 void dibujarCuadradoAlrededor(float x, float y, float z) {
     glDisable(GL_LIGHTING);
     glColor3ub(252, 238, 113);
@@ -587,6 +612,7 @@ void display() {
     else {
         dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
     }
+    //plano();
 
     deque<Punto*>::iterator it;
 
@@ -624,6 +650,8 @@ void display() {
         glEnd();
         glEnable(GL_LIGHTING);
         for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
+            //dibujarCuadradoAlrededor((*it)->x,(*it)->y, (*it)->z);
+            dibujarQuad((*it)->x,(*it)->y, (*it)->z);
             if ((*it)->z == (*it2)->pos.z &&
                 (*it)->y - 0.1 <= (*it2)->pos.y && (*it2)->pos.y <= (*it)->y + 0.15 &&
                 (*it)->x - 0.2 <= (*it2)->pos.x && (*it2)->pos.x <= (*it)->x + 0.2) {
@@ -644,7 +672,6 @@ void display() {
 
     deque<Edificio*>::iterator it3;
     for (it3 = edificios->begin(); it3 < edificios->end(); ++it3) {
-        //dibujarCuadradoAlrededor((*it)->x,(*it)->y, (*it)->z);
         edificio((*it3)->pos.x, (*it3)->pos.y, (*it3)->pos.z, 
                  (*it3)->altura, (*it3)->profundidad);
         if ((*it3)->pos.z == nave.z &&
