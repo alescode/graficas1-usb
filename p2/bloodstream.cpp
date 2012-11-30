@@ -15,6 +15,7 @@
 #include "../lib/constantes.h"
 #include "../lib/punto.h"
 #include "../lib/objeto.h"
+#include "../lib/edificio.h"
 #include "../lib/glm.h"
 
 #define VELOCIDAD_MAXIMA 0.125
@@ -55,6 +56,7 @@ using namespace std;
 
 deque<Punto*>* globulosRojos;
 deque<Punto*>* globulosBlancos;
+deque<Edificio*>* edificios;
 
 deque<Objeto*>* rayos;
 deque<Objeto*>* explosiones;
@@ -87,6 +89,21 @@ void esfera(float x, float y, float z, float radius) {
     glMaterialfv(GL_FRONT, GL_EMISSION, neutro);
     glMaterialfv(GL_FRONT, GL_SHININESS, neutro);
     glPopMatrix();
+}
+
+void edificio(float x, float y, float z, float altura, float profundidad) {
+        glPushMatrix();
+        glTranslatef(x, -0.3, z);
+
+        glScalef(0.5, 0.5 + 1.2 * altura, 0.5 + 16 * profundidad);
+
+        glEnable(GL_COLOR_MATERIAL);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+        glColor4ub(250, 250, 210, 0);
+        glutSolidCube(1);
+        glDisable(GL_COLOR_MATERIAL);
+
+        glPopMatrix();
 }
 
 void anillo(float x, float y, float z,
@@ -125,6 +142,7 @@ void dibujarTexto(const char *string, float x,float y,float z, float scale) {
     glEnable(GL_LIGHTING);
     glPopMatrix();
 }
+
 
 #ifdef __APPLE__
 void cargarSonidos() {
@@ -215,7 +233,7 @@ Punto pixelesACoordenadas(int x, int y) {
 void disparar() {
     rayos->push_back(new Objeto(Punto(nave.x, nave.y, nave.z), nave.z));
 #ifdef __APPLE__
-    alSourcePlay(sfx_fuentes[1]);
+    //alSourcePlay(sfx_fuentes[1]);
 #endif
 }
 
@@ -441,13 +459,23 @@ void obtenerGlobulosRojos(float z, float p) {
     }
 }
 
+void obtenerEdificios(float z, float p) {
+    if (p >= 0.9) {
+        float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
+        float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
+        float profundidad = rand()/float(INT_MAX);
+        float altura = rand()/float(INT_MAX);
+
+        edificios->push_back(new Edificio(Punto(r_x, r_y, z), profundidad, altura));
+    }
+}
+
 void obtenerGlobulosBlancos(float z, float p) {
     if (p >= 0.9) {
         float r_x = 1.6 * rand()/float(INT_MAX) - 0.8;
         float r_y = 1.2 * rand()/float(INT_MAX) - 0.6;
         globulosBlancos->push_back(new Punto(r_x, r_y, z));
     }
-
 }
 
 void dibujarCuadradoAlrededor(float x, float y, float z) {
@@ -512,10 +540,12 @@ void display() {
     if (!(frames % int(10 * VELOCIDAD_MAXIMA / velocidad))) {
         float pRojos = rand()/float(INT_MAX);
         float pBlancos = rand()/float(INT_MAX);
+        float pEdificios = rand()/float(INT_MAX);
         // Adaptar al jugador!
 
         obtenerGlobulosRojos(camara.z - 30, pRojos);
         obtenerGlobulosBlancos(camara.z - 30, pBlancos);
+        obtenerEdificios(camara.z - 30, pEdificios);
     }
 
     if ((int(ceil(tiempo_juego)) == 60)) {
@@ -549,7 +579,7 @@ void display() {
     }
 
     if (parpadeo) {
-        if (frames % 20 != 0) {
+        if (frames % 20 > 10) {
             dibujarModelo(nave.x, nave.y, nave.z, 0.2, virus, GL_RENDER);
         }
         parpadeo -= 1;
@@ -574,8 +604,6 @@ void display() {
         }
     }
     for (it = globulosBlancos->begin(); it < globulosBlancos->end(); ++it) {
-
-        //dibujarCuadradoAlrededor((*it)->x,(*it)->y, (*it)->z);
         dibujarModelo((*it)->x, (*it)->y, (*it)->z, 0.2, globulo_blanco, GL_RENDER);
         if ((*it)->z == nave.z &&
             (*it)->y - 0.1 <= nave.y && nave.y <= (*it)->y + 0.15 &&
@@ -614,11 +642,26 @@ void display() {
         (*it2)->z_inicial += 1;
     }
 
+    deque<Edificio*>::iterator it3;
+    for (it3 = edificios->begin(); it3 < edificios->end(); ++it3) {
+        //dibujarCuadradoAlrededor((*it)->x,(*it)->y, (*it)->z);
+        edificio((*it3)->pos.x, (*it3)->pos.y, (*it3)->pos.z, 
+                 (*it3)->altura, (*it3)->profundidad);
+        if ((*it3)->pos.z == nave.z &&
+            (*it3)->pos.y - 0.1 <= nave.y && nave.y <= (*it3)->pos.y + 0.15 &&
+            (*it3)->pos.x - 0.2 <= nave.x && nave.x <= (*it3)->pos.x + 0.2) {
+                parpadeo = 60;
+                score = max(0, score - 3);
+        }
+    }
+
     // Recoleccion de basura
     if (!globulosRojos->empty() && globulosRojos->front()->z > camara.z)
         globulosRojos->pop_front();
     if (!globulosBlancos->empty() && globulosBlancos->front()->z > camara.z)
         globulosBlancos->pop_front();
+    if (!edificios->empty() && edificios->front()->pos.z > camara.z)
+        edificios->pop_front();
     if (!rayos->empty() && rayos->front()->z_inicial > camara.z + 20) {
         rayos->pop_front();
     }
@@ -660,7 +703,7 @@ int main(int argc,char** argv) {
 
 #ifdef __APPLE__
     cargarSonidos();
-    alSourcePlay(sfx_fuentes[0]);
+    //alSourcePlay(sfx_fuentes[0]);
 #endif
 
     glutDisplayFunc(display);
@@ -678,6 +721,7 @@ int main(int argc,char** argv) {
 
     globulosRojos = new deque<Punto*>;
     globulosBlancos = new deque<Punto*>;
+    edificios = new deque<Edificio*>;
     explosiones = new deque<Objeto*>;
     rayos = new deque<Objeto*>;
 
@@ -691,4 +735,3 @@ int main(int argc,char** argv) {
 
     return 0;
 }
-

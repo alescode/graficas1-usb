@@ -17,5 +17,6 @@ bloodstream: ../lib/glm.o bloodstream.o
 %.o: %.cpp
 	$(CPP) -c $(CPPOPTS) $< -o $@
 
-bloodstream.o: bloodstream.cpp ../lib/glm.h ../lib/formas.h ../lib/constantes.h ../lib/punto.h ../lib/objeto.h
+bloodstream.o: bloodstream.cpp ../lib/glm.h ../lib/formas.h ../lib/constantes.h \
+	../lib/punto.h ../lib/objeto.h ../lib/edificio.h
 ../lib/glm.o: ../lib/glm.cpp ../lib/glm.h
